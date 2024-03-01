@@ -87,7 +87,7 @@ func (k *Kubernetes) GetPods(namespace string) []string {
 
 }
 
-func (k *Kubernetes) createContainer(namespace string, pod string) {
+func (k *Kubernetes) CreateContainer(namespace string, pod string) {
 	containerName := "nethack"
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		pod, err := k.client.CoreV1().Pods(namespace).Get(
@@ -126,6 +126,6 @@ func (k *Kubernetes) createContainer(namespace string, pod string) {
 
 }
 
-func (k *Kubernetes) pollContainer(namespace string, pod string, container string) {
+func (k *Kubernetes) PollContainer(namespace string, pod string, container string) {
 	// Wait for the new container to start running
 }
