@@ -21,7 +21,7 @@ type Kubernetes struct {
 }
 
 // Fetch .kube/config file or generate it from a flag
-func getKubeConfig() *rest.Config {
+func (k *Kubernetes) FetchKubeConfig() {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -39,30 +39,20 @@ func getKubeConfig() *rest.Config {
 
 	}
 
-	return config
-
+	k.config = config
 }
 
-func makeKubeClient(config *rest.Config) *kubernetes.Clientset {
+func (k *Kubernetes) MakeKubeClient() {
 	// create the clientset
-	client, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(k.config)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	return client
-
+	k.client = client
 }
 
-func initializeKubeClient() *Kubernetes {
-
-	config := getKubeConfig()
-	client := makeKubeClient(config)
-
-	return &Kubernetes{config, client}
-}
-
-func getNamespaces(k *Kubernetes) []string {
+func (k *Kubernetes) GetNamespaces() []string {
 	namespaces, err := k.client.CoreV1().Namespaces().List(
 		context.TODO(),
 		metav1.ListOptions{})
@@ -77,10 +67,9 @@ func getNamespaces(k *Kubernetes) []string {
 
 	}
 	return nsNames
-
 }
 
-func getPods(k *Kubernetes, namespace string) []string {
+func (k *Kubernetes) GetPods(namespace string) []string {
 	pods, err := k.client.CoreV1().Pods(namespace).List(
 		context.TODO(),
 		metav1.ListOptions{})
@@ -98,7 +87,7 @@ func getPods(k *Kubernetes, namespace string) []string {
 
 }
 
-func createContainer(k *Kubernetes, namespace string, pod string) {
+func (k *Kubernetes) createContainer(namespace string, pod string) {
 	containerName := "nethack"
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		pod, err := k.client.CoreV1().Pods(namespace).Get(
@@ -137,6 +126,6 @@ func createContainer(k *Kubernetes, namespace string, pod string) {
 
 }
 
-func pollContainer(k *Kubernetes, namespace string, pod string, container string) {
+func (k *Kubernetes) pollContainer(namespace string, pod string, container string) {
 	// Wait for the new container to start running
 }
