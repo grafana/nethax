@@ -1,14 +1,16 @@
-package main
+package interactive
 
 import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/grafana/nethack/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -103,8 +105,8 @@ func (m model) View() string {
 }
 
 func initialModel() model {
-	k := initializeKubeClient()
-	namespaces, err := k.client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	k := pkg.InitializeKubernetes()
+	namespaces, err := k.Client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
 		panic(err.Error())
@@ -126,4 +128,13 @@ func initialModel() model {
 
 	return model{list: l}
 
+}
+
+func Start() *tea.Program {
+	p := tea.NewProgram(initialModel())
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
+	}
+	return p
 }

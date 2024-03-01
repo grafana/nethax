@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -16,8 +17,8 @@ import (
 )
 
 type Kubernetes struct {
-	config *rest.Config
-	client *kubernetes.Clientset
+	Config *rest.Config
+	Client *kubernetes.Clientset
 }
 
 // Fetch .kube/config file or generate it from a flag
@@ -39,21 +40,29 @@ func (k *Kubernetes) FetchKubeConfig() {
 
 	}
 
-	k.config = config
+	k.Config = config
 }
 
 func (k *Kubernetes) MakeKubeClient() {
 	// create the clientset
-	client, err := kubernetes.NewForConfig(k.config)
+	client, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	k.client = client
+	k.Client = client
+}
+
+func InitializeKubernetes() *Kubernetes {
+	k := Kubernetes{}
+	k.FetchKubeConfig()
+	k.MakeKubeClient()
+
+	return &k
 }
 
 func (k *Kubernetes) GetNamespaces() []string {
-	namespaces, err := k.client.CoreV1().Namespaces().List(
+	namespaces, err := k.Client.CoreV1().Namespaces().List(
 		context.TODO(),
 		metav1.ListOptions{})
 
@@ -70,7 +79,7 @@ func (k *Kubernetes) GetNamespaces() []string {
 }
 
 func (k *Kubernetes) GetPods(namespace string) []string {
-	pods, err := k.client.CoreV1().Pods(namespace).List(
+	pods, err := k.Client.CoreV1().Pods(namespace).List(
 		context.TODO(),
 		metav1.ListOptions{})
 
@@ -90,7 +99,7 @@ func (k *Kubernetes) GetPods(namespace string) []string {
 func (k *Kubernetes) CreateContainer(namespace string, pod string) {
 	containerName := "nethack"
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		pod, err := k.client.CoreV1().Pods(namespace).Get(
+		pod, err := k.Client.CoreV1().Pods(namespace).Get(
 			context.TODO(),
 			pod,
 			metav1.GetOptions{})
@@ -114,7 +123,7 @@ func (k *Kubernetes) CreateContainer(namespace string, pod string) {
 				Image: "nicolaka/netshoot",
 			})
 
-		_, err = k.client.CoreV1().Pods(namespace).Update(
+		_, err = k.Client.CoreV1().Pods(namespace).Update(
 			context.TODO(),
 			pod,
 			metav1.UpdateOptions{})
