@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/grafana/nethack/interactive"
+	"log"
+	"os"
+
+	"github.com/grafana/nethack/cmd"
 )
 
 func main() {
-	isInteractive := true
-	if isInteractive {
-		interactive.Start()
+	err := cmd.Execute(os.Args[1:])
+	if err != nil {
+		log.Fatalf("Error: %s", err)
 	}
 }
