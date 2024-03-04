@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -132,9 +131,13 @@ func initialModel() model {
 
 func Start() *tea.Program {
 	p := tea.NewProgram(initialModel())
+	return p
+}
+
+func Run(p *tea.Program) error {
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+		return err
 	}
-	return p
+	return nil
 }

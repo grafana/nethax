@@ -1,8 +1,10 @@
-deps:
-	echo "TODO"
+.PHONY: deps run test
 
-run: deps
-	echo "TODO"
+deps:
+	@go mod download
+
+build: deps
+	@go build
 
 test:
-	echo "TODO"
+	@go test
