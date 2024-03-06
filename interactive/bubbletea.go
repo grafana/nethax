@@ -1,7 +1,6 @@
 package interactive
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/grafana/nethack/pkg"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const listHeight = 14
@@ -105,14 +103,11 @@ func (m model) View() string {
 
 func initialModel() model {
 	k := pkg.InitializeKubernetes()
-	namespaces, err := k.Client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	ns := k.GetNamespaces()
 
-	if err != nil {
-		panic(err.Error())
-	}
 	var namespaceNames []list.Item
-	for _, ns := range namespaces.Items {
-		namespaceNames = append(namespaceNames, item(ns.Name))
+	for _, name := range ns {
+		namespaceNames = append(namespaceNames, item(name))
 	}
 
 	const defaultWidth = 20
