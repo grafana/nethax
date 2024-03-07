@@ -104,7 +104,7 @@ func (m model) View() string {
 }
 
 func initialModel() model {
-	k := pkg.InitializeKubernetes()
+	k := pkg.GetKubernetes()
 	namespaces, err := k.Client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
