@@ -19,6 +19,26 @@
                 "--remote-uri",
                 "https://fjreifjeiorfjeiofjiorfjirefj.com"
             ]
+        },
+        {
+            "name": "Launch - pod2pod",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "args": [
+                "pod2pod",
+                "--namespace-from",
+                "default",
+                "--pod-from",
+                "grafana",
+                "--namespace-to",
+                "kube-system",
+                "--pod-to",
+                "coredns",
+                "--port",
+                "53"
+            ]
         }
     ]
 }
