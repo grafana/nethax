@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -27,19 +28,7 @@ func Pod2Remote() *Command {
 	return cmd
 }
 
-func getPodForWorkload(cmd *cobra.Command) (*k8s.Pod, error) {
-	podRegex, err := cmd.Flags().GetString("pod-from")
-	if err != nil {
-		fmt.Println("pod-from must be specified", err)
-		return nil, err
-	}
-
-	namespace, err := cmd.Flags().GetString("namespace-from")
-	if err != nil {
-		fmt.Println("namespace-from must be specified", err)
-		return nil, err
-	}
-
+func getPodForWorkload(ctx context.Context, podRegex string, namespace string) (*k8s.Pod, error) {
 	podNames := pkg.GetPods(namespace)
 	var matchPod string
 	for _, podName := range podNames {
@@ -56,7 +45,7 @@ func getPodForWorkload(cmd *cobra.Command) (*k8s.Pod, error) {
 	}
 
 	k := pkg.GetKubernetes()
-	pod, err := k.Client.CoreV1().Pods(namespace).Get(cmd.Context(), matchPod, v1.GetOptions{})
+	pod, err := k.Client.CoreV1().Pods(namespace).Get(ctx, matchPod, v1.GetOptions{})
 	if err != nil {
 		fmt.Println(err)
 		return pod, err
@@ -88,8 +77,19 @@ func getPortFromUrl(url *url.URL) string {
 
 func Pod2RemoteExec(cmd *cobra.Command, args []string) {
 	parseFlags(cmd, args)
-	pod, _ := getPodForWorkload(cmd) // TODO
-	command := []string{"nc"}
+	podRegexFrom, err := cmd.Flags().GetString("pod-from")
+	if err != nil {
+		fmt.Println("pod-from must be specified", err)
+		return
+	}
+
+	namespaceFrom, err := cmd.Flags().GetString("namespace-from")
+	if err != nil {
+		fmt.Println("namespace-from must be specified", err)
+		return
+	}
+
+	podFrom, _ := getPodForWorkload(cmd.Context(), podRegexFrom, namespaceFrom)
 
 	// TODO --- fix error - unknown flag: --timeout
 	// timeout, err := cmd.Flags().GetString("timeout")
@@ -107,8 +107,9 @@ func Pod2RemoteExec(cmd *cobra.Command, args []string) {
 		fmt.Println("remote-uri is invalid", err)
 		os.Exit(3)
 	}
+	command := []string{"nc"}
 	arguments := []string{"-w", "3", "-z", url.Host, getPortFromUrl(url)}
-	netshootifiedPod, ephemeralContainerName, err := pkg.LaunchEphemeralContainer(pod, command, arguments)
+	netshootifiedPod, ephemeralContainerName, err := pkg.LaunchEphemeralContainer(podFrom, command, arguments)
 	if err != nil {
 		fmt.Println("Error launching ephemeral container.", err)
 		os.Exit(3)
