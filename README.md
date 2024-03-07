@@ -17,8 +17,8 @@ nethack --context context-name
 This will launch a TUI that displays namespaces. You can drill down from a namespace into a specific pod and then launch into these network debugging modes:
 - pod-to-pod
 - pod-to-remote
-- pod iteractive
-- tcpdump mode (live inspection of pod traffic)
+- (TODO) pod iteractive
+- (TODO) tcpdump mode (live inspection of pod traffic)
 
 Each of these options will launch an ephemeral container inside the pod and then perform the debugging action.
 
@@ -37,7 +37,7 @@ exit 3 - nethack error
 ... [TODO - clean this up]
 ```
 
-### Global Options
+### Global Options (TODO)
 ```
     --timeout [SECONDS] - length of time to wait for establishing a TCP connection
     --context [NAME]    - connect to specified context name from kubeconfig
@@ -45,42 +45,36 @@ exit 3 - nethack error
 
 ### pod-to-pod
 ```
-# Test TCP communication from my-app deployment to other-app daemonset
+# Test TCP communication from my-app pod to other-app pod
 nethack pod-to-pod \
-        --namespace-from my-app --workload-from deployment/my-app \
-        --namespace-to other-app --workload-to daemonset/other-app \
+        --namespace-from my-app --pod-from my-app \
+        --namespace-to other-app --pod-to other-app \
         --port 8080
-
-# Test communication from my-app deployment to my-app statefulset
-nethack pod-to-pod \
-        --namespace-from my-app --workload-from deployment/my-app \
-        --namespace-to my-app --workload-to statefulset/other-app \
-        --remote-port 8080
 ```
 
 ### pod-to-remote
-Test communication from a workload to a remote TCP destination.
+Test communication from a pod to a remote TCP destination.
 ```
-# Test communication from my-app deployment to some HTTP(S) endpoint
+# Test communication from my-app pod to some HTTP(S) endpoint
 nethack pod-to-remote \
-        --namespace-from my-app --workload-from deployment/my-app \
+        --namespace-from my-app --pod-from my-app \
         --remote-uri https://grafana.com
 
-# Test communication from my-app deployment to some MySQL database
+# Test communication from my-app pod to some MySQL database
 nethack pod-to-remote \
-        --namespace-from my-app --workload-from deployment/my-app \
+        --namespace-from my-app --pod-from my-app \
         --remote-uri mysql://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples
 
-# Test communication from my-app deployment to some Postgres database
+# Test communication from my-app pod to some Postgres database
 nethack pod-to-remote \
-        --namespace-from my-app --workload-from deployment/my-app \
+        --namespace-from my-app --pod-from my-app \
         --remote-uri postgres://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples
 
-# Test communication from my-app deployment to some Redis database
+# Test communication from my-app pod to some Redis database
 nethack pod-to-remote \
-        --namespace-from my-app --workload-from deployment/my-app \
+        --namespace-from my-app --pod-from my-app \
         --remote-uri redis://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples
 ```
@@ -93,7 +87,7 @@ TODO - link to CONTRIBUTING.md
 ### Compiling locally
 To compile locally:
 ```
-make run
+make build
 ```
 
 ### Running tests
