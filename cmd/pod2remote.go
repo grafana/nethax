@@ -7,7 +7,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/grafana/nethack/pkg"
+	"github.com/grafana/nethax/pkg"
 	"github.com/spf13/cobra"
 	k8s "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

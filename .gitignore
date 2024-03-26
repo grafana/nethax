@@ -20,5 +20,5 @@
 # Go workspace file
 go.work
 
-# ignore the nethack binary
-nethack
+# ignore the nethax binary
+nethax

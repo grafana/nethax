@@ -1,10 +1,10 @@
-# nethack
+# nethax
 A toolkit for Kubernetes network engineers.
 
 ## Usage
 For full usage instructions, please run:
 ```
-nethack --help
+nethax --help
 ```
 
 ### Options
@@ -14,13 +14,18 @@ nethack --help
 
 Each of these options will launch an ephemeral container inside the pod and then perform the debugging action.
 
+## CLI Usage (e.g. for CI/CD)
+nethax can also be run in a non-interactive mode:
+
 ### Exit codes
-Nethack will perform the test and then return an exit code. Possible exit codes are:
+In non-interactive mode, nethax will perform the test and then return an exit code.
+
+Possible exit codes are:
 ```
 exit 0 - success
 exit 1 - connection not established
 exit 2 - timeout exceeded
-exit 3 - nethack error
+exit 3 - nethax error
 ... [TODO - clean this up]
 ```
 
@@ -33,7 +38,7 @@ exit 3 - nethack error
 ### pod-to-pod
 ```
 # Test TCP communication from my-app pod to other-app pod
-nethack pod-to-pod \
+nethax pod-to-pod \
         --namespace-from my-app --pod-from my-app \
         --namespace-to other-app --pod-to other-app \
         --port 8080
@@ -43,24 +48,24 @@ nethack pod-to-pod \
 Test communication from a pod to a remote TCP destination.
 ```
 # Test communication from my-app pod to some HTTP(S) endpoint
-nethack pod-to-remote \
+nethax pod-to-remote \
         --namespace-from my-app --pod-from my-app \
         --remote-uri https://grafana.com
 
 # Test communication from my-app pod to some MySQL database
-nethack pod-to-remote \
+nethax pod-to-remote \
         --namespace-from my-app --pod-from my-app \
         --remote-uri mysql://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples
 
 # Test communication from my-app pod to some Postgres database
-nethack pod-to-remote \
+nethax pod-to-remote \
         --namespace-from my-app --pod-from my-app \
         --remote-uri postgres://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples
 
 # Test communication from my-app pod to some Redis database
-nethack pod-to-remote \
+nethax pod-to-remote \
         --namespace-from my-app --pod-from my-app \
         --remote-uri redis://[DATABASE-DNS-OR-IP]:[PORT]
         # TODO - clean up these examples

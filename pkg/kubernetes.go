@@ -102,7 +102,7 @@ func GetPods(namespace string) []string {
 
 func CreateContainer(namespace string, pod string) {
 	k := GetKubernetes()
-	containerName := "nethack"
+	containerName := "nethax"
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		pod, err := k.Client.CoreV1().Pods(namespace).Get(
 			context.TODO(),
@@ -151,7 +151,7 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
 	}
 
-	ephemeralName := fmt.Sprintf("nethack-netshoot-%v", time.Now().UnixNano())
+	ephemeralName := fmt.Sprintf("nethax-netshoot-%v", time.Now().UnixNano())
 
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
