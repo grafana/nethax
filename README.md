@@ -7,28 +7,15 @@ For full usage instructions, please run:
 nethack --help
 ```
 
-To launch the TUI, use:
-```
-nethack
-
-nethack --context context-name
-```
-
-This will launch a TUI that displays namespaces. You can drill down from a namespace into a specific pod and then launch into these network debugging modes:
+### Options
 - pod-to-pod
 - pod-to-remote
-- (TODO) pod iteractive
 - (TODO) tcpdump mode (live inspection of pod traffic)
 
 Each of these options will launch an ephemeral container inside the pod and then perform the debugging action.
 
-## CLI Usage (e.g. for CI/CD)
-nethack can also be run in a non-interactive mode:
-
 ### Exit codes
-In non-interactive mode, nethack will perform the test and then return an exit code.
-
-Possible exit codes are:
+Nethack will perform the test and then return an exit code. Possible exit codes are:
 ```
 exit 0 - success
 exit 1 - connection not established

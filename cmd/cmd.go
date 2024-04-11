@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )
 
@@ -27,8 +26,6 @@ type Command struct {
 	*cobra.Command
 
 	*cobra.Group
-
-	program *tea.Program
 }
 
 // AddCommand adds child commands and adds child commands for cobra as well.
@@ -52,5 +49,4 @@ func Execute(args []string) error {
 func addCommands() {
 	RootCmd.AddCommand(Pod2Pod())
 	RootCmd.AddCommand(Pod2Remote())
-	RootCmd.AddCommand(Interactive())
 }
