@@ -141,6 +141,9 @@ func CreateContainer(namespace string, pod string) {
 
 func chooseTargetContainer(pod *corev1.Pod) string {
 	// TODO add capability to pick container by name
+	if len(pod.Spec.Containers) == 0 {
+		log.Fatalf("Error: No containers in pod.")
+	}
 	return pod.Spec.Containers[0].Name
 }
 
