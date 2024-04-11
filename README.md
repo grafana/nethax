@@ -14,13 +14,10 @@ nethax --help
 
 Each of these options will launch an ephemeral container inside the pod and then perform the debugging action.
 
-## CLI Usage (e.g. for CI/CD)
-nethax can also be run in a non-interactive mode:
-
 ### Exit codes
-In non-interactive mode, nethax will perform the test and then return an exit code.
 
 Possible exit codes are:
+Nethack will perform the test and then return an exit code. Possible exit codes are:
 ```
 exit 0 - success
 exit 1 - connection not established
