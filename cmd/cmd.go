@@ -12,8 +12,8 @@ var (
 	//RootCmd is the root level command that all other commands attach to
 	RootCmd = &Command{ // base command
 		Command: &cobra.Command{
-			Use:   "nethack",
-			Short: "nethack!!! TODO",
+			Use:   "nethax",
+			Short: "nethax!!! TODO",
 		},
 	}
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grafana/nethack/pkg"
+	"github.com/grafana/nethax/pkg"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/grafana/nethack/cmd"
+	"github.com/grafana/nethax/cmd"
 )
 
 func main() {

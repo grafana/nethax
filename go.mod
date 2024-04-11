@@ -1,4 +1,4 @@
-module github.com/grafana/nethack
+module github.com/grafana/nethax
 
 go 1.21.5
 
