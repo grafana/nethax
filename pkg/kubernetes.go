@@ -33,10 +33,15 @@ type Kubernetes struct {
 
 // Fetch .kube/config file or generate it from a flag
 func FetchKubeConfig() {
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(homedir.HomeDir(), ".kube", "config"))
+	// attempt to use config from pod service account
+	config, err := rest.InClusterConfig()
 	if err != nil {
-		panic(err.Error())
+		// TODO - allow overriding of kubeconfig path
+		// use the current context in kubeconfig -- assume it is in the home dir
+		config, err = clientcmd.BuildConfigFromFlags("", filepath.Join(homedir.HomeDir(), ".kube", "config"))
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	instance.Config = config
