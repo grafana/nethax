@@ -28,7 +28,7 @@ var (
 
 type Kubernetes struct {
 	Config *rest.Config
-	Client *kubernetes.Clientset
+	Client kubernetes.Interface
 }
 
 // Fetch .kube/config file or generate it from a flag
