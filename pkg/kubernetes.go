@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	instance *Kubernetes = &Kubernetes{}
+	Instance *Kubernetes = &Kubernetes{}
 )
 
 type Kubernetes struct {
@@ -44,28 +44,28 @@ func FetchKubeConfig() {
 		}
 	}
 
-	instance.Config = config
+	Instance.Config = config
 }
 
 func MakeKubeClient() {
 	// create the clientset
-	client, err := kubernetes.NewForConfig(instance.Config)
+	client, err := kubernetes.NewForConfig(Instance.Config)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	instance.Client = client
+	Instance.Client = client
 }
 
 func GetKubernetes() *Kubernetes {
-	if instance.Config == nil {
+	if Instance.Config == nil {
 		FetchKubeConfig()
 	}
-	if instance.Client == nil {
+	if Instance.Client == nil {
 		MakeKubeClient()
 	}
 
-	return instance
+	return Instance
 }
 
 func GetNamespaces() []string {
