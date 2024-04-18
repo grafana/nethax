@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/grafana/nethax/pkg"
 	"github.com/spf13/cobra"
@@ -79,41 +80,46 @@ func Pod2RemoteExec(cmd *cobra.Command, args []string) {
 	parseFlags(cmd, args)
 	podRegexFrom, err := cmd.Flags().GetString("pod-from")
 	if err != nil {
-		fmt.Println("pod-from must be specified", err)
+		fmt.Println("--pod-from must be specified", "stacktrace:", err)
 		return
 	}
-
 	namespaceFrom, err := cmd.Flags().GetString("namespace-from")
 	if err != nil {
-		fmt.Println("namespace-from must be specified", err)
+		fmt.Println("--namespace-from must be specified", "stacktrace:", err)
 		return
 	}
-
-	podFrom, _ := getPodForWorkload(cmd.Context(), podRegexFrom, namespaceFrom)
-
-	// TODO --- fix error - unknown flag: --timeout
-	// timeout, err := cmd.Flags().GetString("timeout")
-	// if err != nil {
-	// 	fmt.Println("timeout must be specified", err)
-	// 	os.Exit(3)
-	// }
 	uri, err := cmd.Flags().GetString("remote-uri")
 	if err != nil || uri == "" {
-		fmt.Println("remote-uri must be specified", err)
+		fmt.Println("--remote-uri must be specified", "stacktrace:", err)
 		os.Exit(3)
 	}
 	url, err := url.ParseRequestURI(uri)
 	if err != nil {
-		fmt.Println("remote-uri is invalid", err)
+		fmt.Println("--remote-uri is invalid", "stacktrace:", err)
 		os.Exit(3)
 	}
+	timeout, err := cmd.Flags().GetInt("timeout")
+	if err != nil {
+		fmt.Println("--timeout is invalid", "stacktrace:", err)
+		os.Exit(3)
+	}
+	expectFail, err := cmd.Flags().GetBool("expect-fail")
+	if err != nil {
+		fmt.Println("--expect-fail is invalid", "stacktrace:", err)
+		os.Exit(3)
+	}
+
+	podFrom, _ := getPodForWorkload(cmd.Context(), podRegexFrom, namespaceFrom)
+
+	// nc -w $timeout -z $host $port
 	command := []string{"nc"}
-	arguments := []string{"-w", "3", "-z", url.Host, getPortFromUrl(url)}
+	arguments := []string{"-w", strconv.Itoa(timeout), "-z", url.Host, getPortFromUrl(url)}
 	netshootifiedPod, ephemeralContainerName, err := pkg.LaunchEphemeralContainer(podFrom, command, arguments)
 	if err != nil {
-		fmt.Println("Error launching ephemeral container.", err)
+		fmt.Println("--Error launching ephemeral container.", "stacktrace:", err)
 		os.Exit(3)
 	}
+
 	exitStatus := pkg.PollEphemeralContainerStatus(netshootifiedPod, ephemeralContainerName)
-	os.Exit(int(exitStatus))
+	os.Exit(pkg.ExitNethax(int(exitStatus), expectFail))
 }

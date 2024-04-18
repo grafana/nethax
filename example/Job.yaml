@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nethax
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nethax
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["pods/ephemeralcontainers"]
+  verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nethax
+subjects:
+- kind: ServiceAccount
+  name: nethax
+roleRef:
+  kind: ClusterRole
+  name: nethax
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nethax
+spec:
+  template:
+    spec:
+      serviceAccountName: nethax
+      containers:
+      # connecting to grafana.com, failure not expected, exit 0
+      - name: nethax-grafana-success
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2remote", "--pod-from=nginx", "--namespace-from=default", "--remote-uri=https://grafana.com"]
+      # connecting to grafana.com, failure is expected, exit 1 
+      - name: nethax-grafana-fail
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2remote", "--pod-from=nginx", "--namespace-from=default", "--expect-fail", "--remote-uri=https://grafana.com"]
+      # connecting to grafanyaa.com, failure is expected, exit 0 
+      - name: nethax-grafanyaa-success
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2remote", "--pod-from=nginx", "--namespace-from=default", "--expect-fail", "--remote-uri=https://grafanyaa.com"]
+      # connecting to grafanyaa.com, failure not expected, exit 1 
+      - name: nethax-grafanyaa-fail
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2remote", "--pod-from=nginx", "--namespace-from=default", "--remote-uri=https://grafanyaa.com"]
+      # connecting to nginx from nginx, failure not expected, exit 0
+      - name: nethax-nginx-80-success
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2pod", "--pod-from=nginx", "--namespace-from=default", "--pod-to=nginx", "--namespace-to=default", "--port=80"]
+      # connecting to nginx from nginx, failure is expected, exit 1 
+      - name: nethax-nginx-80-fail
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2pod", "--pod-from=nginx", "--namespace-from=default", "--expect-fail", "--pod-to=nginx", "--namespace-to=default", "--port=80"]
+      # connecting to nginx from nginx, failure is expected, exit 0 
+      - name: nethax-nginx-42-success
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2pod", "--pod-from=nginx", "--namespace-from=default", "--expect-fail", "--pod-to=nginx", "--namespace-to=default", "--port=42"]
+      # connecting to nginx from nginx, failure not expected, exit 1 
+      - name: nethax-nginx-42-fail
+        image: nethax:v0.0.5
+        command: ["/nethax", "pod2pod", "--pod-from=nginx", "--namespace-from=default", "--pod-to=nginx", "--namespace-to=default", "--port=42"]
+      restartPolicy: Never
+  backoffLimit: 4

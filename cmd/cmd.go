@@ -27,9 +27,15 @@ type Command struct {
 	*cobra.Group
 }
 
+func addSharedFlags(cmd *Command) {
+	cmd.Flags().Int("timeout", 5, "Timeout for connections. Socket must connect successfully before this deadline elapses.")
+	cmd.Flags().Bool("expect-fail", false, "Exit 0 on connection failure. Useful for tests where connections are expected to fail.")
+}
+
 // AddCommand adds child commands and adds child commands for cobra as well.
 func (c *Command) AddCommand(commands ...*Command) {
 	for _, cmd := range commands {
+		addSharedFlags(cmd)
 		c.Command.AddCommand(cmd.Command)
 	}
 }
