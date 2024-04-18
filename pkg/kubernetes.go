@@ -31,8 +31,7 @@ type Kubernetes struct {
 	Client kubernetes.Interface
 }
 
-// Fetch .kube/config file or generate it from a flag
-func FetchKubeConfig() {
+func fetchKubeConfig() {
 	// attempt to use config from pod service account
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -47,8 +46,7 @@ func FetchKubeConfig() {
 	instance.Config = config
 }
 
-func MakeKubeClient() {
-	// create the clientset
+func makeKubeClient() {
 	client, err := kubernetes.NewForConfig(instance.Config)
 	if err != nil {
 		panic(err.Error())
@@ -59,12 +57,13 @@ func MakeKubeClient() {
 
 func GetKubernetes() *Kubernetes {
 	if instance.Config == nil {
-		FetchKubeConfig()
+		fetchKubeConfig()
 	}
 	if instance.Client == nil {
-		MakeKubeClient()
+		makeKubeClient()
 	}
 
+	// you are now ready to Kubernetes.
 	return instance
 }
 
@@ -105,7 +104,7 @@ func GetPods(namespace string) []string {
 
 }
 
-func CreateContainer(namespace string, pod string) {
+func createContainer(namespace string, pod string) {
 	k := GetKubernetes()
 	containerName := "nethax"
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -145,7 +144,7 @@ func CreateContainer(namespace string, pod string) {
 }
 
 func chooseTargetContainer(pod *corev1.Pod) string {
-	// TODO add capability to pick container by name
+	// TODO add capability to pick container by name (currently assume 0th container)
 	if len(pod.Spec.Containers) == 0 {
 		log.Fatalf("Error: No containers in pod.")
 	}
@@ -170,8 +169,6 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 		},
 		TargetContainerName: chooseTargetContainer(pod),
 	}
-
-	// TODO specify command and args for netshoot
 
 	debugPod := pod.DeepCopy()
 	debugPod.Spec.EphemeralContainers = append(debugPod.Spec.EphemeralContainers, *debugContainer)
@@ -239,16 +236,16 @@ func waitForEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName
 
 func PollEphemeralContainerStatus(pod *corev1.Pod, ephemeralContainerName string) int32 {
 	// poll until ephemeral container has an exit status
-	err := waitForEphemeralContainerTerminated(pod, ephemeralContainerName, time.Second*30) // TODO -- make a reasonable timeout value
+	err := waitForEphemeralContainerTerminated(pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
-		os.Exit(2) // TODO -- this error may not always be a timeout exceeded... or is it!?
+		os.Exit(2)
 	}
 	// return exit status
 	exitCode, err := getEphemeralContainerExitStatus(pod, ephemeralContainerName)
 	if err != nil {
 		fmt.Println("Error getting ephemeral container exit code.", err)
-		os.Exit(3) // TODO -- this error may not always be a timeout exceeded... or is it!?
+		os.Exit(3)
 	}
 
 	return exitCode
