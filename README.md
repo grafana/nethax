@@ -20,7 +20,7 @@ Possible exit codes are:
 Nethack will perform the test and then return an exit code. Possible exit codes are:
 ```
 exit 0 - success
-exit 1 - connection not established
+exit 1 - failure
 exit 2 - timeout exceeded
 exit 3 - nethax error
 ... [TODO - clean this up]
@@ -29,7 +29,7 @@ exit 3 - nethax error
 ### Global Options (TODO)
 ```
     --timeout [SECONDS] - length of time to wait for establishing a TCP connection
-    --context [NAME]    - connect to specified context name from kubeconfig
+    --expect-fail       - when set, it is expected that sockets will not connect; nethax will exit 0
 ```
 
 ### pod-to-pod
