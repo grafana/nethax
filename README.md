@@ -26,7 +26,7 @@ exit 3 - nethax error
 ... [TODO - clean this up]
 ```
 
-### Global Options (TODO)
+### Global Options
 ```
     --timeout [SECONDS] - length of time to wait for establishing a TCP connection
     --expect-fail       - when set, it is expected that sockets will not connect; nethax will exit 0
