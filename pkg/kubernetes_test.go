@@ -16,26 +16,6 @@ func setup() *Kubernetes {
 	return k
 }
 
-func TestGetNamespaces(t *testing.T) {
-	// prepare
-	k := setup()
-	expected := []string{"default"}
-	namespaceName := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: expected[0]}}
-	k.Client.CoreV1().Namespaces().Create(context.TODO(), namespaceName, metav1.CreateOptions{})
-
-	// execute
-	actual := GetNamespaces()
-
-	// assert
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Wanted %s, got %s", expected, actual)
-	}
-
-	// clean up
-	k.Client.CoreV1().Namespaces().Delete(context.TODO(), expected[0], metav1.DeleteOptions{})
-}
-
 func TestGetPods(t *testing.T) {
 	// prepare
 	k := setup()

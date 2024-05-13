@@ -10,7 +10,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"k8s.io/client-go/util/retry"
 )
 
 var (
@@ -67,24 +65,6 @@ func GetKubernetes() *Kubernetes {
 	return instance
 }
 
-func GetNamespaces() []string {
-	k := GetKubernetes()
-	namespaces, err := k.Client.CoreV1().Namespaces().List(
-		context.TODO(),
-		metav1.ListOptions{})
-
-	if err != nil {
-		panic(err.Error())
-
-	}
-	nsNames := []string{}
-	for _, ns := range namespaces.Items {
-		nsNames = append(nsNames, ns.Name)
-
-	}
-	return nsNames
-}
-
 func GetPods(namespace string) []string {
 	k := GetKubernetes()
 	pods, err := k.Client.CoreV1().Pods(namespace).List(
@@ -102,45 +82,6 @@ func GetPods(namespace string) []string {
 	}
 	return podNames
 
-}
-
-func createContainer(namespace string, pod string) {
-	k := GetKubernetes()
-	containerName := "nethax"
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		pod, err := k.Client.CoreV1().Pods(namespace).Get(
-			context.TODO(),
-			pod,
-			metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		// Check if the container already exists
-		for _, c := range pod.Spec.Containers {
-			if c.Name == containerName {
-				return fmt.Errorf("container %s already exists in pod %s",
-					containerName,
-					pod)
-			}
-		}
-
-		// Add the new container to the pod
-		pod.Spec.Containers = append(pod.Spec.Containers,
-			corev1.Container{
-				Name:  containerName,
-				Image: "nicolaka/netshoot",
-			})
-
-		_, err = k.Client.CoreV1().Pods(namespace).Update(
-			context.TODO(),
-			pod,
-			metav1.UpdateOptions{})
-		return err
-	})
-	if err != nil {
-		log.Fatalf("Error creating container in pod: %v", err)
-	}
 }
 
 func chooseTargetContainer(pod *corev1.Pod) string {
@@ -185,15 +126,6 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 
 	pods := k.Client.CoreV1().Pods(pod.Namespace)
 	result, err := pods.Patch(context.TODO(), pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
-	if err != nil {
-		// The apiserver will return a 404 when the EphemeralContainers feature is disabled because the `/ephemeralcontainers` subresource
-		// is missing. Unlike the 404 returned by a missing pod, the status details will be empty.
-		if serr, ok := err.(*errors.StatusError); ok && serr.Status().Reason == metav1.StatusReasonNotFound && serr.ErrStatus.Details.Name == "" {
-			return nil, ephemeralName, fmt.Errorf("ephemeral containers are disabled for this cluster (error from server: %q)", err)
-		}
-
-		return nil, ephemeralName, err
-	}
 
 	return result, ephemeralName, nil
 }
