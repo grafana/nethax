@@ -19,7 +19,7 @@ build-nethax: deps-nethax
 	@cd ${DIR_NETHAX} && go build -o "$(CUR_DIR)/bin"
 
 build-probe: deps-probe
-	@cd ${DIR_PROBE} && go build
+	@cd ${DIR_PROBE} && go build -o "$(CUR_DIR)/bin"
 
 test:
 	@go test ./...
