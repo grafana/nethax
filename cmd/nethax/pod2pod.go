@@ -1,11 +1,12 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 	"strconv"
 
-	"github.com/grafana/nethax/pkg"
+	"github.com/grafana/nethax/pkg/common"
+	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
 )
 
@@ -69,11 +70,11 @@ func Pod2PodExec(cmd *cobra.Command, args []string) {
 	podTo, _ := getPodForWorkload(cmd.Context(), podRegexTo, namespaceTo)
 
 	arguments := []string{"-w", strconv.Itoa(timeout), "-z", podTo.Status.PodIP, port}
-	netshootifiedPod, ephemeralContainerName, err := pkg.LaunchEphemeralContainer(podFrom, command, arguments)
+	netshootifiedPod, ephemeralContainerName, err := kubernetes.LaunchEphemeralContainer(podFrom, command, arguments)
 	if err != nil {
 		fmt.Println("Error launching ephemeral container.", err)
 		os.Exit(3)
 	}
-	exitStatus := pkg.PollEphemeralContainerStatus(netshootifiedPod, ephemeralContainerName)
-	os.Exit(pkg.ExitNethax(int(exitStatus), expectFail))
+	exitStatus := kubernetes.PollEphemeralContainerStatus(netshootifiedPod, ephemeralContainerName)
+	os.Exit(common.ExitNethax(int(exitStatus), expectFail))
 }

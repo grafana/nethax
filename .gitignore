@@ -21,4 +21,4 @@
 go.work
 
 # ignore the nethax binary
-nethax
+bin/*
