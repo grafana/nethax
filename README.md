@@ -12,7 +12,6 @@ nethax --help
 ### Options
 - pod-to-pod
 - pod-to-remote
-- (TODO) tcpdump mode (live inspection of pod traffic)
 
 Each of these options will launch an ephemeral container inside the pod and then perform the debugging action.
 
@@ -25,7 +24,6 @@ exit 0 - success
 exit 1 - failure
 exit 2 - timeout exceeded
 exit 3 - nethax error
-... [TODO - clean this up]
 ```
 
 ### Global Options (TODO)

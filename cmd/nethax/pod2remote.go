@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/grafana/nethax/pkg"
+	"github.com/grafana/nethax/pkg/common"
+	"github.com/grafana/nethax/pkg/kubernetes"
+	"github.com/grafana/nethax/pkg/logging"
 	"github.com/spf13/cobra"
 	k8s "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +32,7 @@ func Pod2Remote() *Command {
 }
 
 func getPodForWorkload(ctx context.Context, podRegex string, namespace string) (*k8s.Pod, error) {
-	podNames := pkg.GetPods(namespace)
+	podNames := kubernetes.GetPods(namespace)
 	var matchPod string
 	for _, podName := range podNames {
 		match, err := regexp.MatchString(podRegex, podName)
@@ -45,7 +47,7 @@ func getPodForWorkload(ctx context.Context, podRegex string, namespace string) (
 		}
 	}
 
-	k := pkg.GetKubernetes()
+	k := kubernetes.GetKubernetes()
 	pod, err := k.Client.CoreV1().Pods(namespace).Get(ctx, matchPod, v1.GetOptions{})
 	if err != nil {
 		fmt.Println(err)
@@ -64,7 +66,7 @@ func parseFlags(cmd *cobra.Command, args []string) {
 	// TODO validate flag usage
 }
 
-func getPortFromUrl(url *url.URL) string {
+func getPort(url *url.URL) string {
 	if url.Port() != "" {
 		return url.Port()
 	} else if url.Scheme == "http" {
@@ -88,12 +90,13 @@ func Pod2RemoteExec(cmd *cobra.Command, args []string) {
 		fmt.Println("--namespace-from must be specified", "stacktrace:", err)
 		return
 	}
-	uri, err := cmd.Flags().GetString("remote-uri")
-	if err != nil || uri == "" {
+	rawUri, err := cmd.Flags().GetString("remote-uri")
+	if err != nil {
 		fmt.Println("--remote-uri must be specified", "stacktrace:", err)
 		os.Exit(3)
 	}
-	url, err := url.ParseRequestURI(uri)
+
+	uri, err := url.Parse(rawUri)
 	if err != nil {
 		fmt.Println("--remote-uri is invalid", "stacktrace:", err)
 		os.Exit(3)
@@ -111,15 +114,23 @@ func Pod2RemoteExec(cmd *cobra.Command, args []string) {
 
 	podFrom, _ := getPodForWorkload(cmd.Context(), podRegexFrom, namespaceFrom)
 
+	log := logging.Logger{
+		PodFrom:       podRegexFrom,
+		NamespaceFrom: namespaceFrom,
+		RemoteURI:     rawUri,
+	}
+	log.Info("Port: " + getPort(uri))
+
 	// nc -w $timeout -z $host $port
 	command := []string{"nc"}
-	arguments := []string{"-w", strconv.Itoa(timeout), "-z", url.Host, getPortFromUrl(url)}
-	netshootifiedPod, ephemeralContainerName, err := pkg.LaunchEphemeralContainer(podFrom, command, arguments)
+	arguments := []string{"-w", strconv.Itoa(timeout), "-z", uri.Host, getPort(uri)}
+
+	netshootifiedPod, ephemeralContainerName, err := kubernetes.LaunchEphemeralContainer(podFrom, command, arguments)
 	if err != nil {
 		fmt.Println("--Error launching ephemeral container.", "stacktrace:", err)
 		os.Exit(3)
 	}
 
-	exitStatus := pkg.PollEphemeralContainerStatus(netshootifiedPod, ephemeralContainerName)
-	os.Exit(pkg.ExitNethax(int(exitStatus), expectFail))
+	exitStatus := kubernetes.PollEphemeralContainerStatus(netshootifiedPod, ephemeralContainerName)
+	os.Exit(common.ExitNethax(int(exitStatus), expectFail))
 }

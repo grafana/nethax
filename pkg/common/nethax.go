@@ -1,4 +1,4 @@
-package pkg
+package common
 
 func ExitNethax(exitStatus int, expectFail bool) int {
 	if expectFail { // we expect connections to fail
