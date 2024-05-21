@@ -24,7 +24,6 @@ func init() {
 
 type Command struct {
 	*cobra.Command
-	*cobra.Group
 }
 
 func addSharedFlags(cmd *Command) {
