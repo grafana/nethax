@@ -1,0 +1,14 @@
+FROM golang:1.22-alpine AS build
+
+WORKDIR /
+
+COPY [".", "."]
+RUN cd cmd/probe && go mod download
+
+RUN cd cmd/probe && CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s -extldflags "-static"' -a -o probe .
+
+FROM scratch
+
+COPY --from=build /cmd/probe/probe /probe
+
+ENTRYPOINT ["/probe"]

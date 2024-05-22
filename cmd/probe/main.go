@@ -55,5 +55,12 @@ func testConnectivity(cmd *cobra.Command, args []string) {
 		fmt.Println("Encountered error trying to close TCP connection:", err)
 		os.Exit(1)
 	}
-	os.Exit(0)
+
+	if !expectFail {
+		fmt.Println("Failure not expected, exiting cleanly.")
+		os.Exit(0)
+	} else {
+		fmt.Println("Failure expected, exiting with error.")
+		os.Exit(1)
+	}
 }
