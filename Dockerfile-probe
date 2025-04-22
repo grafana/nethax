@@ -4,13 +4,13 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /
 
 # Copy source code
-COPY . .
+COPY [".", "."]
 
 # Download dependencies
 RUN ["go", "mod", "download"]
 
 # Build the probe binary
-RUN ["go", "build", "-ldflags=-w -s -extldflags '-static'", "-a", "-o", "/probe", "./cmd/probe"]
+RUN ["env", "CGO_ENABLED=0", "GOOS=linux", "go", "build", "-ldflags=-w -s -extldflags '-static'", "-a", "-o", "/probe", "./cmd/probe"]
 
 # Final stage
 FROM scratch

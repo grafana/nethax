@@ -2,10 +2,14 @@ FROM golang:1.24-alpine AS build
 
 WORKDIR /
 
+# Copy source code
 COPY [".", "."]
-RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s -extldflags "-static"' -a -o runner ./cmd/runner
+# Download dependencies
+RUN ["go", "mod", "download"]
+
+# Build the probe binary
+RUN ["env", "CGO_ENABLED=0", "GOOS=linux", "go", "build", "-ldflags=-w -s -extldflags '-static'", "-a", "-o", "runner", "./cmd/runner"]
 
 FROM scratch
 
