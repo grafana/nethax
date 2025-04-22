@@ -10,27 +10,14 @@ import (
 
 var (
 	//RootCmd is the root level command that all other commands attach to
-	RootCmd = &NethaxCommand{ // base command
-		Command: &cobra.Command{
-			Use:   "runner --help",
-			Short: "nethax test runner",
-		},
+	RootCmd = &cobra.Command{
+		Use:   "runner --help",
+		Short: "nethax test runner",
 	}
 )
 
 func init() {
 	addCommands()
-}
-
-type NethaxCommand struct {
-	*cobra.Command
-}
-
-// AddCommand adds child commands and adds child commands for cobra as well.
-func (c *NethaxCommand) AddCommand(commands ...*NethaxCommand) {
-	for _, cmd := range commands {
-		c.Command.AddCommand(cmd.Command)
-	}
 }
 
 func Execute(args []string) error {

@@ -72,41 +72,39 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 
 // GetTimeoutDuration converts the timeout in seconds to a time.Duration
 func (t *Test) GetTimeoutDuration() time.Duration {
-	return time.Duration(t.Timeout) * time.Second
+	return t.Timeout
 }
 
 // ExecuteTest returns the execute-test command
-func ExecuteTest() *NethaxCommand {
+func ExecuteTest() *cobra.Command {
 	var testFile string
 
-	cmd := &NethaxCommand{
-		Command: &cobra.Command{
-			Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
-			Short: "Execute network connectivity test plan",
-			Run: func(cmd *cobra.Command, args []string) {
-				if testFile == "" {
-					cmd.Println("Error: test file must be specified")
-					cmd.Help()
-					os.Exit(2)
-				}
+	cmd := &cobra.Command{
+		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
+		Short: "Execute network connectivity test plan",
+		Run: func(cmd *cobra.Command, args []string) {
+			if testFile == "" {
+				cmd.Println("Error: test file must be specified")
+				cmd.Help()
+				os.Exit(2)
+			}
 
-				file, err := os.Open(testFile)
-				if err != nil {
-					cmd.Printf("Error opening test file: %v\n", err)
-					os.Exit(2)
-				}
-				defer file.Close()
+			file, err := os.Open(testFile)
+			if err != nil {
+				cmd.Printf("Error opening test file: %v\n", err)
+				os.Exit(2)
+			}
+			defer file.Close()
 
-				plan, err := ParseTestPlan(file)
-				if err != nil {
-					cmd.Printf("Error parsing test plan: %v\n", err)
-					os.Exit(2)
-				}
+			plan, err := ParseTestPlan(file)
+			if err != nil {
+				cmd.Printf("Error parsing test plan: %v\n", err)
+				os.Exit(2)
+			}
 
-				if !executeTest(plan) {
-					os.Exit(1)
-				}
-			},
+			if !executeTest(plan) {
+				os.Exit(1)
+			}
 		},
 	}
 
