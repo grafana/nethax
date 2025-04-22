@@ -99,12 +99,12 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
 	}
 
-	ephemeralName := fmt.Sprintf("nethax-netshoot-%v", time.Now().UnixNano())
+	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   "nicolaka/netshoot",
+			Image:   "nethax-probe:0.0.1-1745297472", // TODO - a better way to get the version into here?
 			Command: command,
 			Args:    args,
 		},
@@ -126,6 +126,9 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 
 	pods := k.Client.CoreV1().Pods(pod.Namespace)
 	result, err := pods.Patch(context.TODO(), pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
+	if err != nil {
+		return nil, ephemeralName, fmt.Errorf("error patching pod with debug container: %v", err)
+	}
 
 	return result, ephemeralName, nil
 }
@@ -171,7 +174,7 @@ func PollEphemeralContainerStatus(pod *corev1.Pod, ephemeralContainerName string
 	err := waitForEphemeralContainerTerminated(pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
-		os.Exit(2)
+		os.Exit(3)
 	}
 	// return exit status
 	exitCode, err := getEphemeralContainerExitStatus(pod, ephemeralContainerName)

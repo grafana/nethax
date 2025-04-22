@@ -1,0 +1,32 @@
+testPlan:
+  name: "Otel Demo Test Plan"
+  description: "Test plan for the opentelemetry demo application: https://github.com/open-telemetry/opentelemetry-demo"
+  testTargets:
+  - name: "basic connectivity tests"
+    podSelector: "app.kubernetes.io/instance=opentelemetry-demo"
+    podSelection:
+      mode: "random"  # options: "all", "random"
+    tests:
+    - name: "Check internet access"
+      endpoint: "https://grafana.com"
+      statusCode: 200
+      timeout: 5
+    - name: "Check internal service"
+      endpoint: "http://otel-collector.otel-demo.svc.cluster.local:8888/metrics"
+      statusCode: 200
+      timeout: 3
+  - name: "coredns connectivity tests"
+    podSelector: "k8s-app=kube-dns"
+    namespace: kube-system
+    podSelection:
+      mode: "all"  # will test all pods matching the selector and namespace
+    tests:
+    - name: "Ensure fake service call fails"
+      endpoint: "http://fake-service.fake.svc.cluster.local/fake/healthz"
+      statusCode: 0 # 0 expects a connection failure; useful to test network policies
+      timeout: 3
+    - name: "TCP service call"
+      endpoint: "fake-service.fake.svc.cluster.local:9001"
+      type: tcp
+      expectFail: false # TCP connection failure is expected; useful to test network policies
+      timeout: 3
