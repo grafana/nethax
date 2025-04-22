@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -18,6 +17,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
@@ -173,13 +174,13 @@ func PollEphemeralContainerStatus(ctx context.Context, pod *corev1.Pod, ephemera
 	err := waitForEphemeralContainerTerminated(ctx, pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
-		os.Exit(3)
+		common.ExitNethaxError()
 	}
 	// return exit status
 	exitCode, err := getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 	if err != nil {
 		fmt.Println("Error getting ephemeral container exit code.", err)
-		os.Exit(3)
+		common.ExitNethaxError()
 	}
 
 	return exitCode

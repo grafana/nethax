@@ -1,16 +1,32 @@
 package common
 
-func ExitNethax(exitStatus int, expectFail bool) int {
-	if expectFail { // we expect connections to fail
-		if exitStatus == 0 {
-			exitStatus = 1 // connection succeeded when expected to fail
-		} else {
-			exitStatus = 0 // connection failed when expected to fail
-		}
-	}
-	if exitStatus > 1 {
-		exitStatus = 1 // normalize other failed exit codes to 1
-	}
+import (
+	"os"
+)
 
-	return exitStatus
+const (
+	ExitCodeSuccess     = 0
+	ExitCodeFailure     = 1
+	ExitCodeConfigError = 2
+	ExitCodeNethaxError = 3
+)
+
+// ExitSuccess exits with code 0 (success)
+func ExitSuccess() {
+	os.Exit(ExitCodeSuccess)
+}
+
+// ExitFailure exits with code 1 (failure)
+func ExitFailure() {
+	os.Exit(ExitCodeFailure)
+}
+
+// ExitConfigError exits with code 2 (config error)
+func ExitConfigError() {
+	os.Exit(ExitCodeConfigError)
+}
+
+// ExitNethaxError exits with code 3 (nethax error)
+func ExitNethaxError() {
+	os.Exit(ExitCodeNethaxError)
 }

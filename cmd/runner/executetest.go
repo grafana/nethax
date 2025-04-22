@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-yaml"
+	"github.com/grafana/nethax/pkg/common"
 	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -85,24 +86,24 @@ func ExecuteTest() *cobra.Command {
 			if testFile == "" {
 				cmd.Println("Error: test file must be specified")
 				cmd.Help()
-				os.Exit(2)
+				common.ExitConfigError()
 			}
 
 			file, err := os.Open(testFile)
 			if err != nil {
 				cmd.Printf("Error opening test file: %v\n", err)
-				os.Exit(2)
+				common.ExitConfigError()
 			}
 			defer file.Close()
 
 			plan, err := ParseTestPlan(file)
 			if err != nil {
 				cmd.Printf("Error parsing test plan: %v\n", err)
-				os.Exit(2)
+				common.ExitConfigError()
 			}
 
 			if !executeTest(cmd.Context(), plan) {
-				os.Exit(1)
+				common.ExitFailure()
 			}
 		},
 	}

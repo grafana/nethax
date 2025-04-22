@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
@@ -27,7 +28,7 @@ func main() {
 
 	if url == "" {
 		fmt.Println("Error: URL must be specified")
-		os.Exit(1)
+		common.ExitFailure()
 	}
 
 	if testType == "tcp" {
@@ -42,20 +43,20 @@ func testTCPConnection() {
 	if err != nil {
 		if expectFail {
 			fmt.Println("TCP connection failed as expected:", err)
-			os.Exit(0)
+			common.ExitSuccess()
 		}
 		fmt.Println("TCP connection failed unexpectedly:", err)
-		os.Exit(1)
+		common.ExitFailure()
 	}
 	defer conn.Close()
 
 	if expectFail {
 		fmt.Println("TCP connection succeeded unexpectedly")
-		os.Exit(1)
+		common.ExitFailure()
 	}
 
 	fmt.Println("TCP connection succeeded")
-	os.Exit(0)
+	common.ExitSuccess()
 }
 
 func testHTTPConnection() {
@@ -67,18 +68,18 @@ func testHTTPConnection() {
 	if err != nil {
 		if expectedStatus == 0 {
 			fmt.Println("Connection failed as expected:", err)
-			os.Exit(0)
+			common.ExitSuccess()
 		}
 		fmt.Println("Connection failed unexpectedly:", err)
-		os.Exit(1)
+		common.ExitFailure()
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == expectedStatus {
 		fmt.Printf("Connection succeeded with expected status code %d\n", expectedStatus)
-		os.Exit(0)
+		common.ExitSuccess()
 	}
 
 	fmt.Printf("Connection succeeded but got status code %d, expected %d\n", resp.StatusCode, expectedStatus)
-	os.Exit(1)
+	common.ExitFailure()
 }

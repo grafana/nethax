@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/grafana/nethax/pkg/common"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ func Execute(args []string) error {
 		if !strings.Contains(err.Error(), "unknown command") {
 			fmt.Println(err)
 		}
-		os.Exit(2)
+		common.ExitConfigError()
 	}
 
 	return nil
