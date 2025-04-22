@@ -157,42 +157,31 @@ func executeTest(plan *TestPlan) bool {
 
 		// Select pods based on the selection mode
 		var selectedPods []*corev1.Pod
-		switch target.PodSelection.Mode {
-		case "all":
-			// Only select pods that have Ready condition set to true
-			for i := range pods.Items {
-				if isPodReady(&pods.Items[i]) {
-					selectedPods = append(selectedPods, &pods.Items[i])
-				}
-			}
-			if len(selectedPods) == 0 {
-				indent(fmt.Sprintf("Warning: No ready pods found matching selector %s", target.PodSelector), 1)
-				fmt.Println()
-				allTestsPassed = false
-				continue
-			}
-		case "random":
-			// Filter to only ready pods first
-			var readyPods []*corev1.Pod
-			for i := range pods.Items {
-				if isPodReady(&pods.Items[i]) {
-					readyPods = append(readyPods, &pods.Items[i])
-				}
-			}
-			if len(readyPods) == 0 {
-				indent(fmt.Sprintf("Warning: No ready pods found matching selector %s", target.PodSelector), 1)
-				fmt.Println()
-				allTestsPassed = false
-				continue
-			}
-			// Select one random pod from the ready pods
-			randomIndex := rand.Intn(len(readyPods))
-			selectedPods = append(selectedPods, readyPods[randomIndex])
-		default:
+		if mode := target.PodSelection.Mode; mode != "all" && mode != "random" {
 			indent(fmt.Sprintf("Error: Invalid pod selection mode: %s", target.PodSelection.Mode), 1)
 			fmt.Println()
 			allTestsPassed = false
 			continue
+		}
+		
+		// Only select pods that have Ready condition set to true
+		for i := range pods.Items {
+			if isPodReady(&pods.Items[i]) {
+				selectedPods = append(selectedPods, &pods.Items[i])
+			}
+		}
+
+		if len(selectedPods) == 0 {
+			indent(fmt.Sprintf("Warning: No ready pods found matching selector %s", target.PodSelector), 1)
+			fmt.Println()
+			allTestsPassed = false
+			continue
+		}
+		
+		if target.PodSelection.Mode == "random" {
+			// Select one random pod from the ready pods
+			randomIndex := rand.Intn(len(readyPods))
+			selectedPods = []*corev1.Pod{readyPods[randomIndex]}
 		}
 
 		indent(fmt.Sprintf("Selected %d ready pod(s) for testing", len(selectedPods)), 1)
