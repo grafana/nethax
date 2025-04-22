@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,8 +54,7 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 	var plan struct {
 		TestPlan TestPlan `yaml:"testPlan"`
 	}
-	decoder := yaml.NewDecoder(reader)
-	if err := decoder.Decode(&plan); err != nil {
+	if err := yaml.NewDecoder(reader).Decode(&plan); err != nil {
 		return nil, err
 	}
 
