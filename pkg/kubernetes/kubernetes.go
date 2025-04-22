@@ -24,7 +24,7 @@ import (
 var (
 	instance *Kubernetes = &Kubernetes{}
 	// ProbeImageVersion is set at build time via ldflags
-	ProbeImageVersion = "0.0.1-1745297472"
+	ProbeImageVersion = "latest"
 )
 
 type Kubernetes struct {
