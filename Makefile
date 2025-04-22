@@ -1,8 +1,8 @@
 .PHONY: deps deps-runner deps-probe build build-runner build-probe test docker docker-runner docker-probe
 
 # Set these to release new versions of the container
-RUNNER_SEMVER := "0.0.1"
-PROBE_SEMVER := "0.0.1"
+RUNNER_SEMVER := "0.1.0"
+PROBE_SEMVER := "0.1.0"
 
 CI := $(CI)
 
