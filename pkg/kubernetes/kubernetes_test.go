@@ -32,7 +32,7 @@ func TestGetPods(t *testing.T) {
 	k.Client.CoreV1().Pods(expected[0]).Create(context.TODO(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual := GetPods(expected[0])
+	actual := GetPods(context.TODO(), expected[0])
 
 	// assert
 	if !reflect.DeepEqual(actual, expected) {
@@ -65,7 +65,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.Client.CoreV1().Pods(name).Create(context.TODO(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual, _, _ := LaunchEphemeralContainer(pod, []string{"nyaa"}, []string{"rawr"})
+	actual, _, _ := LaunchEphemeralContainer(context.TODO(), pod, []string{"nyaa"}, []string{"rawr"})
 
 	// assert
 	if len(actual.Spec.EphemeralContainers) != 1 {

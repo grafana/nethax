@@ -101,7 +101,7 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(2)
 			}
 
-			if !executeTest(plan) {
+			if !executeTest(cmd.Context(), plan) {
 				os.Exit(1)
 			}
 		},
@@ -118,7 +118,7 @@ func indent(s string, level int) {
 	fmt.Println(strings.Repeat("  ", level) + s)
 }
 
-func executeTest(plan *TestPlan) bool {
+func executeTest(ctx context.Context, plan *TestPlan) bool {
 	indent("Test Plan: "+plan.Name, 0)
 	indent("Description: "+plan.Description, 0)
 	fmt.Println()
@@ -135,7 +135,7 @@ func executeTest(plan *TestPlan) bool {
 		indent("Selection Mode: "+target.PodSelection.Mode, 1)
 
 		// Find pods matching the selector
-		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(context.TODO(), v1.ListOptions{
+		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(ctx, v1.ListOptions{
 			LabelSelector: target.PodSelector,
 		})
 		if err != nil {
@@ -223,7 +223,7 @@ func executeTest(plan *TestPlan) bool {
 				}
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := kubernetes.LaunchEphemeralContainer(pod, command, arguments)
+				probedPod, probeContainerName, err := kubernetes.LaunchEphemeralContainer(ctx, pod, command, arguments)
 				if err != nil {
 					indent(fmt.Sprintf("Error: Failed to launch ephemeral probe container: %v", err), 3)
 					fmt.Println()
@@ -232,7 +232,7 @@ func executeTest(plan *TestPlan) bool {
 				}
 
 				// Wait for the test to complete and get the exit status
-				exitStatus := kubernetes.PollEphemeralContainerStatus(probedPod, probeContainerName)
+				exitStatus := kubernetes.PollEphemeralContainerStatus(ctx, probedPod, probeContainerName)
 
 				// Check if the test passed based on the probe's exit status
 				if exitStatus == 0 {

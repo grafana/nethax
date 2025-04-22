@@ -21,10 +21,10 @@ DIR_PROBE := "$(CUR_DIR)/cmd/probe"
 build: build-runner build-probe
 
 build-runner: deps-runner
-	@cd ${DIR_RUNNER} && go build -o "$(CUR_DIR)/bin"
+	@cd ${DIR_RUNNER} && go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=${PROBE_VERSION}'" -o "$(CUR_DIR)/bin"
 
 build-probe: deps-probe
-	@cd ${DIR_PROBE} && go build -o "$(CUR_DIR)/bin"
+	@cd ${DIR_PROBE} && go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=${PROBE_VERSION}'" -o "$(CUR_DIR)/bin"
 
 clean:
 	@rm -f "$(CUR_DIR)/bin/"*
@@ -41,15 +41,15 @@ deps-probe:
 docker: docker-runner docker-probe
 
 docker-runner:
-	@docker build -f Dockerfile-runner -t nethax-runner:${RUNNER_VERSION} .
+	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=${PROBE_VERSION} -t nethax-runner:${RUNNER_VERSION} .
 ifndef CI
 	@kind load docker-image nethax-runner:${RUNNER_VERSION} || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe -t nethax-probe:${PROBE_VERSION} .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=${PROBE_VERSION} -t nethax-probe:${PROBE_VERSION} .
 ifndef CI
-	@kind load docker-image nethax-probe:${RUNNER_VERSION} || true
+	@kind load docker-image nethax-probe:${PROBE_VERSION} || true
 endif
 
 test:
