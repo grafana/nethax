@@ -11,7 +11,7 @@ import (
 
 var (
 	url            string
-	timeout        int
+	timeout        time.Duration
 	expectedStatus int
 	testType       string
 	expectFail     bool
@@ -19,7 +19,7 @@ var (
 
 func main() {
 	flag.StringVar(&url, "url", "", "URL or host:port to connect to")
-	flag.IntVar(&timeout, "timeout", 5, "Timeout value in seconds")
+	flag.DurationVar(&timeout, "timeout", 5*time.Second, "Timeout value (e.g. 5s, 1m)")
 	flag.IntVar(&expectedStatus, "expected-status", 200, "Expected HTTP status code (0 for connection failure)")
 	flag.StringVar(&testType, "type", "http", "Type of test (http or tcp)")
 	flag.BoolVar(&expectFail, "expect-fail", false, "Whether the test is expected to fail (TCP tests only)")
@@ -38,8 +38,7 @@ func main() {
 }
 
 func testTCPConnection() {
-	timeoutDuration := time.Duration(timeout) * time.Second
-	conn, err := net.DialTimeout("tcp", url, timeoutDuration)
+	conn, err := net.DialTimeout("tcp", url, timeout)
 	if err != nil {
 		if expectFail {
 			fmt.Println("TCP connection failed as expected:", err)
@@ -61,7 +60,7 @@ func testTCPConnection() {
 
 func testHTTPConnection() {
 	client := &http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout: timeout,
 	}
 
 	resp, err := client.Get(url)

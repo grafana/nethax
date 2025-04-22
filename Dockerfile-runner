@@ -5,10 +5,10 @@ WORKDIR /
 COPY [".", "."]
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s -extldflags "-static"' -a -o nethax ./cmd/runner
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s -extldflags "-static"' -a -o runner ./cmd/runner
 
 FROM scratch
 
-COPY --from=build /nethax /nethax
+COPY --from=build /runner /runner
 
-ENTRYPOINT ["/nethax"]
+ENTRYPOINT ["/runner"]

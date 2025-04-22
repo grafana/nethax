@@ -1,16 +1,16 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
 
-WORKDIR /build
+WORKDIR /
 
 # Copy source code
 COPY . .
 
 # Download dependencies
-RUN go mod download
+RUN ["go", "mod", "download"]
 
 # Build the probe binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s -extldflags "-static"' -a -o /probe ./cmd/probe
+RUN ["go", "build", "-ldflags=-w -s -extldflags '-static'", "-a", "-o", "/probe", "./cmd/probe"]
 
 # Final stage
 FROM scratch

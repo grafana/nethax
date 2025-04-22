@@ -20,12 +20,12 @@ import (
 
 // Test represents a single network connectivity test
 type Test struct {
-	Name       string `yaml:"name"`
-	Endpoint   string `yaml:"endpoint"`
-	StatusCode int    `yaml:"statusCode"`
-	Type       string `yaml:"type,omitempty"`
-	ExpectFail bool   `yaml:"expectFail,omitempty"`
-	Timeout    int    `yaml:"timeout"`
+	Name       string        `yaml:"name"`
+	Endpoint   string        `yaml:"endpoint"`
+	StatusCode int           `yaml:"statusCode"`
+	Type       string        `yaml:"type,omitempty"`
+	ExpectFail bool          `yaml:"expectFail,omitempty"`
+	Timeout    time.Duration `yaml:"timeout"`
 }
 
 // PodSelection represents how pods should be selected for testing
@@ -197,7 +197,7 @@ func executeTest(plan *TestPlan) bool {
 				indent("Type: "+test.Type, 3)
 				indent(fmt.Sprintf("Expected Status: %d", test.StatusCode), 3)
 				indent(fmt.Sprintf("Expect Fail: %v", test.ExpectFail), 3)
-				indent(fmt.Sprintf("Timeout: %d seconds", test.Timeout), 3)
+				indent(fmt.Sprintf("Timeout: %s", test.Timeout.String()), 3)
 
 				// Parse the endpoint URL for HTTP tests
 				if test.Type != "tcp" {
@@ -214,7 +214,7 @@ func executeTest(plan *TestPlan) bool {
 				command := []string{"/probe"}
 				arguments := []string{
 					"--url", test.Endpoint,
-					"--timeout", strconv.Itoa(test.Timeout),
+					"--timeout", test.Timeout.String(),
 					"--expected-status", strconv.Itoa(test.StatusCode),
 				}
 
