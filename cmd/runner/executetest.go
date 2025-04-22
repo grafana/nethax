@@ -160,7 +160,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 			allTestsPassed = false
 			continue
 		}
-		
+
 		// Only select pods that have Ready condition set to true
 		for i := range pods.Items {
 			if isPodReady(&pods.Items[i]) {
@@ -174,11 +174,11 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 			allTestsPassed = false
 			continue
 		}
-		
+
 		if target.PodSelection.Mode == "random" {
 			// Select one random pod from the ready pods
-			randomIndex := rand.Intn(len(readyPods))
-			selectedPods = []*corev1.Pod{readyPods[randomIndex]}
+			randomIndex := rand.Intn(len(selectedPods))
+			selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
 		}
 
 		indent(fmt.Sprintf("Selected %d ready pod(s) for testing", len(selectedPods)), 1)
