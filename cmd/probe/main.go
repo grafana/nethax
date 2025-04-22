@@ -1,59 +1,85 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
-	"os"
+	"net/http"
 	"time"
 
-	"github.com/spf13/cobra"
+	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
-	port       int
-	endpoint   string
-	timeout    int
-	expectFail bool
+	url            string
+	timeout        time.Duration
+	expectedStatus int
+	testType       string
+	expectFail     bool
 )
 
 func main() {
-	rootCmd := &cobra.Command{
-		Use:   "Nethax Prober",
-		Short: "Nethax Prober check ability to do connectivity",
-		Run:   testConnectivity,
+	flag.StringVar(&url, "url", "", "URL or host:port to connect to")
+	flag.DurationVar(&timeout, "timeout", 5*time.Second, "Timeout value (e.g. 5s, 1m)")
+	flag.IntVar(&expectedStatus, "expected-status", 200, "Expected HTTP status code (0 for connection failure)")
+	flag.StringVar(&testType, "type", "http", "Type of test (http or tcp)")
+	flag.BoolVar(&expectFail, "expect-fail", false, "Whether the test is expected to fail (TCP tests only)")
+	flag.Parse()
+
+	if url == "" {
+		fmt.Println("Error: URL must be specified")
+		common.ExitFailure()
 	}
 
-	// Printed value, shorthand, default values, description
-	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "Port number to connect to")
-	rootCmd.Flags().StringVarP(&endpoint, "endpoint", "e", "localhost", "Endpoint to connect to")
-	rootCmd.Flags().IntVarP(&timeout, "timeout", "t", 5, "Timeout value")
-	rootCmd.Flags().BoolVarP(&expectFail, "expect-failure", "f", false, "Whether we expect the connection to fail or succeed")
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if testType == "tcp" {
+		testTCPConnection()
+	} else {
+		testHTTPConnection()
 	}
 }
 
-func testConnectivity(cmd *cobra.Command, args []string) {
-	address := fmt.Sprintf("%s:%d", endpoint, port)
-	conn, err := net.DialTimeout("tcp", address, time.Duration(timeout)*time.Second)
+func testTCPConnection() {
+	conn, err := net.DialTimeout("tcp", url, timeout)
 	if err != nil {
-		fmt.Println("Encountered an error trying to create network connection", err)
 		if expectFail {
-			fmt.Println("Failure expected, exiting cleanly.")
-			os.Exit(0)
-		} else {
-			fmt.Println("Failure not expected, exiting with error.")
-			os.Exit(1)
+			fmt.Println("TCP connection failed as expected:", err)
+			common.ExitSuccess()
 		}
+		fmt.Println("TCP connection failed unexpectedly:", err)
+		common.ExitFailure()
+	}
+	defer conn.Close()
+
+	if expectFail {
+		fmt.Println("TCP connection succeeded unexpectedly")
+		common.ExitFailure()
 	}
 
-	fmt.Println("Connection succeeded to:", conn.RemoteAddr().String(), fmt.Sprintf("(%s)", address))
-	err = conn.Close()
-	if err != nil {
-		fmt.Println("Encountered error trying to close TCP connection:", err)
-		os.Exit(1)
+	fmt.Println("TCP connection succeeded")
+	common.ExitSuccess()
+}
+
+func testHTTPConnection() {
+	client := &http.Client{
+		Timeout: timeout,
 	}
-	os.Exit(0)
+
+	resp, err := client.Get(url)
+	if err != nil {
+		if expectedStatus == 0 {
+			fmt.Println("Connection failed as expected:", err)
+			common.ExitSuccess()
+		}
+		fmt.Println("Connection failed unexpectedly:", err)
+		common.ExitFailure()
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == expectedStatus {
+		fmt.Printf("Connection succeeded with expected status code %d\n", expectedStatus)
+		common.ExitSuccess()
+	}
+
+	fmt.Printf("Connection succeeded but got status code %d, expected %d\n", resp.StatusCode, expectedStatus)
+	common.ExitFailure()
 }

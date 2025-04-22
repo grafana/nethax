@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -18,10 +17,14 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
 	instance *Kubernetes = &Kubernetes{}
+	// ProbeImageVersion is set at build time via ldflags
+	ProbeImageVersion = "latest"
 )
 
 type Kubernetes struct {
@@ -65,23 +68,20 @@ func GetKubernetes() *Kubernetes {
 	return instance
 }
 
-func GetPods(namespace string) []string {
+func GetPods(ctx context.Context, namespace string) []string {
 	k := GetKubernetes()
 	pods, err := k.Client.CoreV1().Pods(namespace).List(
-		context.TODO(),
+		ctx,
 		metav1.ListOptions{})
 
 	if err != nil {
 		panic(err.Error())
-
 	}
 	podNames := []string{}
 	for _, pod := range pods.Items {
 		podNames = append(podNames, pod.Name)
-
 	}
 	return podNames
-
 }
 
 func chooseTargetContainer(pod *corev1.Pod) string {
@@ -92,19 +92,19 @@ func chooseTargetContainer(pod *corev1.Pod) string {
 	return pod.Spec.Containers[0].Name
 }
 
-func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
+func LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
 	k := GetKubernetes()
 	podJS, err := json.Marshal(pod)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
 	}
 
-	ephemeralName := fmt.Sprintf("nethax-netshoot-%v", time.Now().UnixNano())
+	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   "nicolaka/netshoot",
+			Image:   fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
 			Command: command,
 			Args:    args,
 		},
@@ -125,14 +125,17 @@ func LaunchEphemeralContainer(pod *corev1.Pod, command []string, args []string) 
 	}
 
 	pods := k.Client.CoreV1().Pods(pod.Namespace)
-	result, err := pods.Patch(context.TODO(), pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
+	result, err := pods.Patch(ctx, pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
+	if err != nil {
+		return nil, ephemeralName, fmt.Errorf("error patching pod with debug container: %v", err)
+	}
 
 	return result, ephemeralName, nil
 }
 
-func getEphemeralContainerExitStatus(pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
+func getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
 	k := GetKubernetes()
-	pod, err := k.Client.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+	pod, err := k.Client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		return -1, err
 	}
@@ -149,7 +152,7 @@ func getEphemeralContainerExitStatus(pod *corev1.Pod, ephemeralContainerName str
 
 func isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName string) wait.ConditionWithContextFunc {
 	return func(ctx context.Context) (bool, error) {
-		exitCode, err := getEphemeralContainerExitStatus(pod, ephemeralContainerName)
+		exitCode, err := getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 		if err != nil {
 			return false, err
 		}
@@ -162,22 +165,22 @@ func isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName stri
 
 // Poll up to timeout seconds for pod to enter running state.
 // Returns an error if the pod never enters the running state.
-func waitForEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName string, timeout time.Duration) error {
-	return wait.PollUntilContextTimeout(context.TODO(), time.Second, timeout, false, isEphemeralContainerTerminated(pod, ephemeralContainerName))
+func waitForEphemeralContainerTerminated(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, time.Second, timeout, false, isEphemeralContainerTerminated(pod, ephemeralContainerName))
 }
 
-func PollEphemeralContainerStatus(pod *corev1.Pod, ephemeralContainerName string) int32 {
+func PollEphemeralContainerStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) int32 {
 	// poll until ephemeral container has an exit status
-	err := waitForEphemeralContainerTerminated(pod, ephemeralContainerName, time.Second*30)
+	err := waitForEphemeralContainerTerminated(ctx, pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
-		os.Exit(2)
+		common.ExitNethaxError()
 	}
 	// return exit status
-	exitCode, err := getEphemeralContainerExitStatus(pod, ephemeralContainerName)
+	exitCode, err := getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 	if err != nil {
 		fmt.Println("Error getting ephemeral container exit code.", err)
-		os.Exit(3)
+		common.ExitNethaxError()
 	}
 
 	return exitCode

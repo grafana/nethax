@@ -1,0 +1,26 @@
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /
+
+# Copy source code
+COPY [".", "."]
+
+# Download dependencies
+RUN ["go", "mod", "download"]
+
+# Build the probe binary
+ARG PROBE_VERSION
+RUN ["env", "CGO_ENABLED=0", "GOOS=linux", "go", "build", "-ldflags=-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=${PROBE_VERSION}'", "-a", "-o", "/probe", "./cmd/probe"]
+
+# Final stage
+FROM scratch
+
+# Copy the binary from builder
+COPY --from=builder /probe /probe
+
+# Copy CA certificates from builder
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Set the entrypoint
+ENTRYPOINT ["/probe"] 

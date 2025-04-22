@@ -1,0 +1,19 @@
+FROM golang:1.24-alpine AS build
+
+WORKDIR /
+
+# Copy source code
+COPY [".", "."]
+
+# Download dependencies
+RUN ["go", "mod", "download"]
+
+# Build the probe binary
+ARG PROBE_VERSION
+RUN ["env", "CGO_ENABLED=0", "GOOS=linux", "go", "build", "-ldflags=-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=${PROBE_VERSION}'", "-a", "-o", "runner", "./cmd/runner"]
+
+FROM scratch
+
+COPY --from=build /runner /runner
+
+ENTRYPOINT ["/runner"]

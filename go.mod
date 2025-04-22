@@ -3,6 +3,7 @@ module github.com/grafana/nethax
 go 1.21.5
 
 require (
+	github.com/goccy/go-yaml v1.17.1
 	github.com/spf13/cobra v1.8.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
