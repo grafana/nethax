@@ -1,6 +1,6 @@
 module github.com/grafana/nethax
 
-go 1.21.5
+go 1.24.2
 
 require (
 	github.com/goccy/go-yaml v1.17.1
