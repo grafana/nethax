@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 func TestHTTPProbe(t *testing.T) {
@@ -17,7 +16,7 @@ func TestHTTPProbe(t *testing.T) {
 			w.WriteHeader(status)
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, status)
+		p := NewHTTPProbe(ts.URL, status)
 
 		if err := p.Run(t.Context()); err != nil {
 			t.Fatal(err)
@@ -28,7 +27,7 @@ func TestHTTPProbe(t *testing.T) {
 		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, 0)
+		p := NewHTTPProbe(ts.URL, 0)
 
 		if err := p.Run(t.Context()); err != nil {
 			t.Fatal(err)
@@ -40,7 +39,7 @@ func TestHTTPProbe(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, 0)
+		p := NewHTTPProbe(ts.URL, 0)
 
 		if err := p.Run(t.Context()); !errors.Is(err, errConnectionSucceeded) {
 			t.Fatalf("expecting error %v, got %v", errConnectionSucceeded, err)
@@ -52,7 +51,7 @@ func TestHTTPProbe(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
+		p := NewHTTPProbe(ts.URL, http.StatusOK)
 
 		if err := p.Run(t.Context()); !errors.Is(err, errAssertionFailed) {
 			t.Fatalf("expecting error %v, got %v", errAssertionFailed, err)
@@ -64,7 +63,7 @@ func TestHTTPProbe(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
+		p := NewHTTPProbe(ts.URL, http.StatusOK)
 
 		if err := p.Run(t.Context()); !errors.Is(err, errConnectionFailed) {
 			t.Fatalf("expecting error %v, got %v", errConnectionFailed, err)
@@ -76,7 +75,7 @@ func TestHTTPProbe(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
-		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
+		p := NewHTTPProbe(ts.URL, http.StatusOK)
 
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()

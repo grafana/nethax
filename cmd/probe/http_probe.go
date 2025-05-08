@@ -4,29 +4,23 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 var _ Probe = &HTTPProbe{}
 
 type HTTPProbe struct {
-	url     string
-	timeout time.Duration
-	status  int
+	url    string
+	status int
 }
 
-func NewHTTPProbe(url string, timeout time.Duration, status int) *HTTPProbe {
+func NewHTTPProbe(url string, status int) *HTTPProbe {
 	return &HTTPProbe{
-		url:     url,
-		timeout: timeout,
-		status:  status,
+		url:    url,
+		status: status,
 	}
 }
 
 func (p *HTTPProbe) Run(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, p.timeout)
-	defer cancel()
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
 	if err != nil {
 		return err
