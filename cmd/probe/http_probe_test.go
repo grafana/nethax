@@ -84,4 +84,18 @@ func TestHTTPProbe(t *testing.T) {
 			t.Fatalf("expecting error %v, got %v", context.Canceled, err)
 		}
 	})
+
+	t.Run("custom client", func(t *testing.T) {
+		status := http.StatusOK
+
+		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+		}))
+
+		p := NewHTTPProbeWithClient(ts.URL, status, ts.Client())
+
+		if err := p.Run(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	})
 }

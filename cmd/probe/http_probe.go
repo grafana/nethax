@@ -11,12 +11,18 @@ var _ Probe = &HTTPProbe{}
 type HTTPProbe struct {
 	url    string
 	status int
+	client *http.Client
 }
 
 func NewHTTPProbe(url string, status int) *HTTPProbe {
+	return NewHTTPProbeWithClient(url, status, http.DefaultClient)
+}
+
+func NewHTTPProbeWithClient(url string, status int, client *http.Client) *HTTPProbe {
 	return &HTTPProbe{
 		url:    url,
 		status: status,
+		client: client,
 	}
 }
 
@@ -26,7 +32,7 @@ func (p *HTTPProbe) Run(ctx context.Context) error {
 		return err
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := p.client.Do(req)
 	if err != nil {
 		if p.status == 0 { // expecting failure
 			return nil
