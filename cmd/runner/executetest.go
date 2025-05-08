@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/nethax/pkg/common"
 	"github.com/grafana/nethax/pkg/kubernetes"
+	pf "github.com/grafana/nethax/pkg/probeflags"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -119,15 +120,15 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				// Prepare the test command
 				command := []string{"/probe"}
 				arguments := []string{
-					"--url", test.Endpoint,
-					"--timeout", test.Timeout.String(),
-					"--expected-status", strconv.Itoa(test.StatusCode),
+					pf.Flagify(pf.ArgUrl), test.Endpoint,
+					pf.Flagify(pf.ArgTimeout), test.Timeout.String(),
+					pf.Flagify(pf.ArgExpectedStatus), strconv.Itoa(test.StatusCode),
 				}
 
-				if test.Type == "tcp" {
-					arguments = append(arguments, "--type", "tcp")
+				if test.Type == pf.TestTypeTCP {
+					arguments = append(arguments, pf.Flagify(pf.ArgType), pf.TestTypeTCP)
 					if test.ExpectFail {
-						arguments = append(arguments, "--expect-fail")
+						arguments = append(arguments, pf.Flagify(pf.ArgExpectFail))
 					}
 				}
 
