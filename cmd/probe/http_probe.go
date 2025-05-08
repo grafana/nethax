@@ -23,12 +23,16 @@ func NewHTTPProbe(url string, timeout time.Duration, status int) *HTTPProbe {
 	}
 }
 
-func (p *HTTPProbe) Run(_ context.Context) error {
-	c := &http.Client{
-		Timeout: timeout,
+func (p *HTTPProbe) Run(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, p.timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
+	if err != nil {
+		return err
 	}
 
-	res, err := c.Get(p.url)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if p.status == 0 { // expecting failure
 			return nil

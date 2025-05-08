@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -67,6 +68,21 @@ func TestHTTPProbe(t *testing.T) {
 
 		if err := p.Run(t.Context()); !errors.Is(err, errConnectionFailed) {
 			t.Fatalf("expecting error %v, got %v", errConnectionFailed, err)
+		}
+	})
+
+	t.Run("context cancelled", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		if err := p.Run(ctx); !errors.Is(err, context.Canceled) {
+			t.Fatalf("expecting error %v, got %v", context.Canceled, err)
 		}
 	})
 }
