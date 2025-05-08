@@ -5,8 +5,7 @@ import (
 )
 
 type Probe interface {
-	Run()
-	Assert() error
+	Run() error
 }
 
 var (

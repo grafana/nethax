@@ -17,9 +17,8 @@ func TestHTTPProbe(t *testing.T) {
 		}))
 
 		p := NewHTTPProbe(ts.URL, time.Second, status)
-		p.Run()
 
-		if err := p.Assert(); err != nil {
+		if err := p.Run(); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -29,9 +28,8 @@ func TestHTTPProbe(t *testing.T) {
 		}))
 
 		p := NewHTTPProbe(ts.URL, time.Second, 0)
-		p.Run()
 
-		if err := p.Assert(); err != nil {
+		if err := p.Run(); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -42,9 +40,8 @@ func TestHTTPProbe(t *testing.T) {
 		}))
 
 		p := NewHTTPProbe(ts.URL, time.Second, 0)
-		p.Run()
 
-		if err := p.Assert(); !errors.Is(err, errConnectionSucceeded) {
+		if err := p.Run(); !errors.Is(err, errConnectionSucceeded) {
 			t.Fatalf("expecting error %v, got %v", errConnectionSucceeded, err)
 		}
 	})
@@ -55,9 +52,8 @@ func TestHTTPProbe(t *testing.T) {
 		}))
 
 		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
-		p.Run()
 
-		if err := p.Assert(); !errors.Is(err, errAssertionFailed) {
+		if err := p.Run(); !errors.Is(err, errAssertionFailed) {
 			t.Fatalf("expecting error %v, got %v", errAssertionFailed, err)
 		}
 	})
@@ -68,9 +64,8 @@ func TestHTTPProbe(t *testing.T) {
 		}))
 
 		p := NewHTTPProbe(ts.URL, time.Second, http.StatusOK)
-		p.Run()
 
-		if err := p.Assert(); !errors.Is(err, errConnectionFailed) {
+		if err := p.Run(); !errors.Is(err, errConnectionFailed) {
 			t.Fatalf("expecting error %v, got %v", errConnectionFailed, err)
 		}
 	})

@@ -24,7 +24,7 @@ func NewHTTPProbe(url string, timeout time.Duration, expectedStatus int) *HTTPPr
 	}
 }
 
-func (p *HTTPProbe) Run() {
+func (p *HTTPProbe) Run() error {
 	c := &http.Client{
 		Timeout: timeout,
 	}
@@ -32,14 +32,11 @@ func (p *HTTPProbe) Run() {
 	res, err := c.Get(p.url)
 	if err != nil {
 		p.err = err
-		return
+	} else {
+		defer res.Body.Close() //nolint:errcheck
+		p.resStatus = res.StatusCode
 	}
-	defer res.Body.Close() //nolint:errcheck
 
-	p.resStatus = res.StatusCode
-}
-
-func (p *HTTPProbe) Assert() error {
 	if p.expStatus == 0 && p.err == nil {
 		return errConnectionSucceeded
 	} else if p.expStatus != 0 && p.err != nil {
