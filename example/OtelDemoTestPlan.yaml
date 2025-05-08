@@ -28,5 +28,5 @@ testPlan:
     - name: "TCP service call"
       endpoint: "fake-service.fake.svc.cluster.local:9001"
       type: tcp
-      expectFail: false # TCP connection failure is expected; useful to test network policies
+      expectFail: true # TCP connection failure is expected; useful to test network policies
       timeout: 3s
