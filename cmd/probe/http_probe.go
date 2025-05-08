@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -22,7 +23,7 @@ func NewHTTPProbe(url string, timeout time.Duration, status int) *HTTPProbe {
 	}
 }
 
-func (p *HTTPProbe) Run() error {
+func (p *HTTPProbe) Run(_ context.Context) error {
 	c := &http.Client{
 		Timeout: timeout,
 	}

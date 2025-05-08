@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 )
 
 type Probe interface {
-	Run() error
+	Run(context.Context) error
 }
 
 var (
