@@ -24,10 +24,10 @@ DIR_PROBE := "$(CUR_DIR)/cmd/probe"
 build: build-runner build-probe
 
 build-runner: deps-runner
-	@cd $(DIR_RUNNER) && go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin"
+	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_RUNNER)
 
 build-probe: deps-probe
-	@cd $(DIR_PROBE) && go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin"
+	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_PROBE)
 
 .PHONY: clean
 clean:
@@ -38,14 +38,8 @@ clean:
 # Default kind cluster name if not overridden
 KIND_CLUSTER_NAME ?= "nethax"
 
-deps: deps-runner deps-probe
-
-deps-runner:
-	@cd $(DIR_RUNNER) && go mod download
-
-deps-probe:
-	@cd $(DIR_PROBE) && go mod download
-
+deps:
+	go mod download
 
 .PHONY: docker docker-runner docker-probe
 docker: docker-runner docker-probe
@@ -72,10 +66,10 @@ test:
 kind-init-oteldemo:
 	@kind delete cluster --name $(KIND_CLUSTER_NAME) || true
 	@kind create cluster --name $(KIND_CLUSTER_NAME)
-	kubectl --context "kind-$(KIND_CLUSTER_NAME)" create ns otel-demo
-	kubectl --context "kind-$(KIND_CLUSTER_NAME)" apply -n otel-demo -f https://raw.githubusercontent.com/open-telemetry/opentelemetry-demo/main/kubernetes/opentelemetry-demo.yaml || true
-	kubectl --context "kind-$(KIND_CLUSTER_NAME)" create cm -n otel-demo grafana-dashboards
-	kubectl --context "kind-$(KIND_CLUSTER_NAME)" replace -n otel-demo -f https://raw.githubusercontent.com/open-telemetry/opentelemetry-demo/main/kubernetes/opentelemetry-demo.yaml
+	@kubectl --context "kind-$(KIND_CLUSTER_NAME)" create ns otel-demo
+	@kubectl --context "kind-$(KIND_CLUSTER_NAME)" apply -n otel-demo -f https://raw.githubusercontent.com/open-telemetry/opentelemetry-demo/main/kubernetes/opentelemetry-demo.yaml || true
+	@kubectl --context "kind-$(KIND_CLUSTER_NAME)" create cm -n otel-demo grafana-dashboards
+	@kubectl --context "kind-$(KIND_CLUSTER_NAME)" replace -n otel-demo -f https://raw.githubusercontent.com/open-telemetry/opentelemetry-demo/main/kubernetes/opentelemetry-demo.yaml
 
 .PHONY: run-example-test-plan
 # Default test plan path if not overridden

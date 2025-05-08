@@ -1,6 +1,6 @@
 # Developer Setup
 
-Ensure you have `kubectl`, `kind`, and some kind of `docker` command installed.
+Ensure you have `go`, `kubectl`, `kind`, and some kind of `docker` command installed.
 
 You can initialize a new kind cluster for testing and run the example test plan against it using this command:
 ```Console
@@ -22,6 +22,3 @@ Once you've installed the OpenTelemetry Demo, you can execute the example test p
 ```
 make run-example-test-plan
 ```
-
-## TODO: Implement Kyverno E2E Testing
-This would automate the test process to make developer onboarding easier.
