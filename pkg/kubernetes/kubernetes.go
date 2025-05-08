@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"path/filepath"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,36 +15,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 
 	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
-	instance *Kubernetes = &Kubernetes{}
 	// ProbeImageVersion is set at build time via ldflags
 	ProbeImageVersion = "latest"
 )
 
-type Kubernetes struct {
-	Config *rest.Config
-	Client kubernetes.Interface
-}
-
-func fetchKubeConfig() {
-	// attempt to use config from pod service account
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		// TODO - allow overriding of kubeconfig path
-		// use the current context in kubeconfig -- assume it is in the home dir
-		config, err = clientcmd.BuildConfigFromFlags("", filepath.Join(homedir.HomeDir(), ".kube", "config"))
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-
-	instance.Config = config
-}
+var (
+	// Singleton for Kubernetes access
+	instance *Kubernetes = &Kubernetes{}
+)
 
 func makeKubeClient() {
 	client, err := kubernetes.NewForConfig(instance.Config)
@@ -56,9 +38,9 @@ func makeKubeClient() {
 	instance.Client = client
 }
 
-func GetKubernetes() *Kubernetes {
+func GetKubernetes(context string) *Kubernetes {
 	if instance.Config == nil {
-		fetchKubeConfig()
+		fetchKubeConfig(context)
 	}
 	if instance.Client == nil {
 		makeKubeClient()
@@ -68,8 +50,36 @@ func GetKubernetes() *Kubernetes {
 	return instance
 }
 
-func GetPods(ctx context.Context, namespace string) []string {
-	k := GetKubernetes()
+func fetchKubeConfig(context string) {
+	// attempt to use config from pod service account
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		// Can be overridden by KUBECONFIG variable
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverride := &clientcmd.ConfigOverrides{}
+		if context != "" {
+			configOverride.CurrentContext = context
+		}
+
+		config, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			loadingRules,
+			configOverride,
+		).ClientConfig()
+
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+
+	instance.Config = config
+}
+
+type Kubernetes struct {
+	Config *rest.Config
+	Client kubernetes.Interface
+}
+
+func (k *Kubernetes) GetPods(ctx context.Context, namespace string) []string {
 	pods, err := k.Client.CoreV1().Pods(namespace).List(
 		ctx,
 		metav1.ListOptions{})
@@ -92,8 +102,7 @@ func chooseTargetContainer(pod *corev1.Pod) string {
 	return pod.Spec.Containers[0].Name
 }
 
-func LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
-	k := GetKubernetes()
+func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
@@ -133,8 +142,7 @@ func LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []st
 	return result, ephemeralName, nil
 }
 
-func getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
-	k := GetKubernetes()
+func (k *Kubernetes) getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
 	pod, err := k.Client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		return -1, err
@@ -150,9 +158,9 @@ func getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephem
 	return -1, nil
 }
 
-func isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName string) wait.ConditionWithContextFunc {
+func (k *Kubernetes) isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName string) wait.ConditionWithContextFunc {
 	return func(ctx context.Context) (bool, error) {
-		exitCode, err := getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
+		exitCode, err := k.getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 		if err != nil {
 			return false, err
 		}
@@ -165,19 +173,19 @@ func isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName stri
 
 // Poll up to timeout seconds for pod to enter running state.
 // Returns an error if the pod never enters the running state.
-func waitForEphemeralContainerTerminated(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string, timeout time.Duration) error {
-	return wait.PollUntilContextTimeout(ctx, time.Second, timeout, false, isEphemeralContainerTerminated(pod, ephemeralContainerName))
+func (k *Kubernetes) waitForEphemeralContainerTerminated(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, time.Second, timeout, false, k.isEphemeralContainerTerminated(pod, ephemeralContainerName))
 }
 
-func PollEphemeralContainerStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) int32 {
+func (k *Kubernetes) PollEphemeralContainerStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) int32 {
 	// poll until ephemeral container has an exit status
-	err := waitForEphemeralContainerTerminated(ctx, pod, ephemeralContainerName, time.Second*30)
+	err := k.waitForEphemeralContainerTerminated(ctx, pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
 		common.ExitNethaxError()
 	}
 	// return exit status
-	exitCode, err := getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
+	exitCode, err := k.getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 	if err != nil {
 		fmt.Println("Error getting ephemeral container exit code.", err)
 		common.ExitNethaxError()
