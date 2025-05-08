@@ -9,18 +9,16 @@ import (
 var _ Probe = &HTTPProbe{}
 
 type HTTPProbe struct {
-	url       string
-	timeout   time.Duration
-	resStatus int
-	expStatus int
-	err       error
+	url     string
+	timeout time.Duration
+	status  int
 }
 
-func NewHTTPProbe(url string, timeout time.Duration, expectedStatus int) *HTTPProbe {
+func NewHTTPProbe(url string, timeout time.Duration, status int) *HTTPProbe {
 	return &HTTPProbe{
-		url:       url,
-		timeout:   timeout,
-		expStatus: expectedStatus,
+		url:     url,
+		timeout: timeout,
+		status:  status,
 	}
 }
 
@@ -31,18 +29,19 @@ func (p *HTTPProbe) Run() error {
 
 	res, err := c.Get(p.url)
 	if err != nil {
-		p.err = err
-	} else {
-		defer res.Body.Close() //nolint:errcheck
-		p.resStatus = res.StatusCode
+		if p.status == 0 { // expecting failure
+			return nil
+		}
+
+		return fmt.Errorf("%w: %w", errConnectionFailed, err)
 	}
 
-	if p.expStatus == 0 && p.err == nil {
+	defer res.Body.Close() //nolint:errcheck
+
+	if p.status == 0 {
 		return errConnectionSucceeded
-	} else if p.expStatus != 0 && p.err != nil {
-		return fmt.Errorf("%w: %w", errConnectionFailed, p.err)
-	} else if p.expStatus != p.resStatus {
-		return fmt.Errorf("%w: expecting response code %d, got %d", errAssertionFailed, p.expStatus, p.resStatus)
+	} else if p.status != res.StatusCode {
+		return fmt.Errorf("%w: expecting response code %d, got %d", errAssertionFailed, p.status, res.StatusCode)
 	}
 
 	return nil
