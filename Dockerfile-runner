@@ -10,7 +10,7 @@ RUN ["go", "mod", "download"]
 
 # Build the probe binary
 ARG PROBE_VERSION
-RUN ["env", "CGO_ENABLED=0", "GOOS=linux", "go", "build", "-ldflags=-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=${PROBE_VERSION}'", "-a", "-o", "runner", "./cmd/runner"]
+RUN env CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -extldflags '-static' -X ${PROBE_VERSION}" -a -o /runner ./cmd/runner
 
 FROM scratch
 
