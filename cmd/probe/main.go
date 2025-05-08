@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net"
@@ -31,11 +32,24 @@ func main() {
 		common.ExitFailure()
 	}
 
+	var probe Probe
+
 	if testType == "tcp" {
-		testTCPConnection()
+		probe = NewTCPProbe(url, expectFail)
 	} else {
-		testHTTPConnection()
+		probe = NewHTTPProbe(url, expectedStatus)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := probe.Run(ctx); err != nil {
+		fmt.Println("Probe failed unexpectedly:", err)
+		common.ExitSuccess()
+	}
+
+	fmt.Println("Probe succeeded")
+	common.ExitSuccess()
 }
 
 func testTCPConnection() {
