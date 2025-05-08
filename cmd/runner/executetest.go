@@ -124,7 +124,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 	indent("Description: "+plan.Description, 0)
 	fmt.Println()
 
-	k := kubernetes.GetKubernetes()
+	k := kubernetes.GetKubernetes("")
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {
@@ -224,7 +224,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 				}
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := kubernetes.LaunchEphemeralContainer(ctx, pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, pod, command, arguments)
 				if err != nil {
 					indent(fmt.Sprintf("Error: Failed to launch ephemeral probe container: %v", err), 3)
 					fmt.Println()
@@ -233,7 +233,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 				}
 
 				// Wait for the test to complete and get the exit status
-				exitStatus := kubernetes.PollEphemeralContainerStatus(ctx, probedPod, probeContainerName)
+				exitStatus := k.PollEphemeralContainerStatus(ctx, probedPod, probeContainerName)
 
 				// Check if the test passed based on the probe's exit status
 				if exitStatus == 0 {

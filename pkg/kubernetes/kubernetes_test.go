@@ -10,7 +10,7 @@ import (
 )
 
 func setup() *Kubernetes {
-	k := GetKubernetes()
+	k := GetKubernetes("")
 	k.Client = testClient.NewSimpleClientset()
 	return k
 }
@@ -31,7 +31,7 @@ func TestGetPods(t *testing.T) {
 	k.Client.CoreV1().Pods(expected[0]).Create(t.Context(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual := GetPods(t.Context(), expected[0])
+	actual := k.GetPods(t.Context(), expected[0])
 
 	// assert
 	if !reflect.DeepEqual(actual, expected) {
@@ -65,7 +65,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.Client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual, _, _ := LaunchEphemeralContainer(t.Context(), pod, []string{"nyaa"}, []string{"rawr"})
+	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, []string{"nyaa"}, []string{"rawr"})
 
 	// assert
 	if len(actual.Spec.EphemeralContainers) != 1 {
