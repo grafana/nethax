@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/grafana/nethax/pkg/common"
+	pf "github.com/grafana/nethax/pkg/probeflags"
 )
 
 var (
@@ -18,11 +19,11 @@ var (
 )
 
 func main() {
-	flag.StringVar(&url, "url", "", "URL or host:port to connect to")
-	flag.DurationVar(&timeout, "timeout", 5*time.Second, "Timeout value (e.g. 5s, 1m)")
-	flag.IntVar(&expectedStatus, "expected-status", 200, "Expected HTTP status code (0 for connection failure)")
-	flag.StringVar(&testType, "type", "http", "Type of test (http or tcp)")
-	flag.BoolVar(&expectFail, "expect-fail", false, "Whether the test is expected to fail (TCP tests only)")
+	flag.StringVar(&url, pf.ArgUrl, "", "URL or host:port to connect to")
+	flag.DurationVar(&timeout, pf.ArgTimeout, 5*time.Second, "Timeout value (e.g. 5s, 1m)")
+	flag.IntVar(&expectedStatus, pf.ArgExpectedStatus, 200, "Expected HTTP status code (0 for connection failure)")
+	flag.StringVar(&testType, pf.ArgType, pf.TestTypeHTTP, "Type of test (http or tcp)")
+	flag.BoolVar(&expectFail, pf.ArgExpectFail, false, "Whether the test is expected to fail (TCP tests only)")
 	flag.Parse()
 
 	if url == "" {
