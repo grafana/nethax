@@ -43,7 +43,7 @@ func main() {
 
 	if err := probe.Run(ctx); err != nil {
 		fmt.Println("Probe failed unexpectedly:", err)
-		common.ExitSuccess()
+		common.ExitFailure()
 	}
 
 	fmt.Println("Probe succeeded")
