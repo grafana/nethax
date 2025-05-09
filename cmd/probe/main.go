@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/grafana/nethax/pkg/common"
+	"github.com/grafana/nethax/pkg/probeflags"
 	pf "github.com/grafana/nethax/pkg/probeflags"
 )
 
@@ -28,15 +29,19 @@ func main() {
 
 	if url == "" {
 		fmt.Println("Error: URL must be specified")
-		common.ExitFailure()
+		common.ExitConfigError()
 	}
 
 	var probe Probe
 
-	if testType == "tcp" {
+	switch testType {
+	case probeflags.TestTypeTCP:
 		probe = NewTCPProbe(url, expectFail)
-	} else {
+	case probeflags.TestTypeHTTP:
 		probe = NewHTTPProbe(url, expectedStatus)
+	default:
+		fmt.Println("Error: Invalid test type: ", testType)
+		common.ExitConfigError()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
