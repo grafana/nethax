@@ -55,11 +55,6 @@ func ExecuteTest() *cobra.Command {
 	return cmd
 }
 
-// indent prints the given string with the specified number of spaces for indentation
-func indent(s string, level int) {
-	fmt.Println(strings.Repeat("  ", level) + s)
-}
-
 func indentf(level int, format string, a ...any) {
 	fmt.Print(strings.Repeat(" ", level))
 	fmt.Printf(format, a...)
