@@ -40,7 +40,7 @@ func TestTCPProbe(t *testing.T) {
 			t.Fatalf("unexpected error creating listener: %v", err)
 		}
 
-		p := NewTCPProbe(l.Addr().String(), true)
+		p := NewTCPProbe(l.Addr().String(), false)
 
 		l.Close()
 
@@ -55,7 +55,7 @@ func TestTCPProbe(t *testing.T) {
 			t.Fatalf("unexpected error creating listener: %v", err)
 		}
 
-		p := NewTCPProbe(l.Addr().String(), true)
+		p := NewTCPProbe(l.Addr().String(), false)
 
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
