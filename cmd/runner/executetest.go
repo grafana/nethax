@@ -85,7 +85,7 @@ func ExecuteTest() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if testFile == "" {
 				cmd.Println("Error: test file must be specified")
-				cmd.Help()
+				cmd.Help() //nolint:errcheck
 				common.ExitConfigError()
 			}
 
@@ -94,7 +94,7 @@ func ExecuteTest() *cobra.Command {
 				cmd.Printf("Error opening test file: %v\n", err)
 				common.ExitConfigError()
 			}
-			defer file.Close()
+			defer file.Close() //nolint:errcheck
 
 			plan, err := ParseTestPlan(file)
 			if err != nil {
@@ -109,7 +109,7 @@ func ExecuteTest() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
-	cmd.MarkFlagRequired("file")
+	cmd.MarkFlagRequired("file") //nolint:errcheck
 
 	return cmd
 }
