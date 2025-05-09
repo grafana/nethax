@@ -67,20 +67,20 @@ func indentf(level int, format string, a ...any) {
 }
 
 func executeTest(ctx context.Context, plan *TestPlan) bool {
-	indentf(0, "Test Plan: "+plan.Name)
-	indentf(0, "Description: "+plan.Description)
+	indentf(0, "Test Plan: %s", plan.Name)
+	indentf(0, "Description: %s", plan.Description)
 	fmt.Println()
 
 	k := kubernetes.GetKubernetes("")
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {
-		indentf(1, "Target: "+target.Name)
-		indentf(1, "Selector: "+target.PodSelector)
+		indentf(1, "Target: %s", target.Name)
+		indentf(1, "Selector: %s", target.PodSelector)
 		if target.Namespace != "" {
-			indentf(1, "Namespace: "+target.Namespace)
+			indentf(1, "Namespace: %s", target.Namespace)
 		}
-		indentf(1, "Selection Mode: "+target.PodSelection.Mode)
+		indentf(1, "Selection Mode: %s", target.PodSelection.Mode)
 
 		// Find pods matching the selector
 		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(ctx, v1.ListOptions{
@@ -133,13 +133,13 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 
 		// Execute tests for each selected pod
 		for _, pod := range selectedPods {
-			indentf(1, fmt.Sprintf("Pod: %s/%s", pod.Namespace, pod.Name))
+			indentf(1, "Pod: %s/%s", pod.Namespace, pod.Name)
 
 			// Execute each test for this pod
 			for _, test := range target.Tests {
-				indentf(2, "Test: "+test.Name)
-				indentf(3, "Endpoint: "+test.Endpoint)
-				indentf(3, "Type: "+test.Type)
+				indentf(2, "Test: %s", test.Name)
+				indentf(3, "Endpoint: %s", test.Endpoint)
+				indentf(3, "Type: %s", test.Type)
 				indentf(3, "Expected Status: %d", test.StatusCode)
 				indentf(3, "Expect Fail: %v", test.ExpectFail)
 				indentf(3, "Timeout: %s", test.Timeout.String())
