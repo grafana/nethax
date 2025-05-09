@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"net"
-	"net/http"
 	"time"
 
 	"github.com/grafana/nethax/pkg/common"
@@ -31,55 +30,22 @@ func main() {
 		common.ExitFailure()
 	}
 
+	var probe Probe
+
 	if testType == "tcp" {
-		testTCPConnection()
+		probe = NewTCPProbe(url, expectFail)
 	} else {
-		testHTTPConnection()
+		probe = NewHTTPProbe(url, expectedStatus)
 	}
-}
 
-func testTCPConnection() {
-	conn, err := net.DialTimeout("tcp", url, timeout)
-	if err != nil {
-		if expectFail {
-			fmt.Println("TCP connection failed as expected:", err)
-			common.ExitSuccess()
-		}
-		fmt.Println("TCP connection failed unexpectedly:", err)
-		common.ExitFailure()
-	}
-	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	if expectFail {
-		fmt.Println("TCP connection succeeded unexpectedly")
+	if err := probe.Run(ctx); err != nil {
+		fmt.Println("Probe failed unexpectedly:", err)
 		common.ExitFailure()
 	}
 
-	fmt.Println("TCP connection succeeded")
+	fmt.Println("Probe succeeded")
 	common.ExitSuccess()
-}
-
-func testHTTPConnection() {
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
-	resp, err := client.Get(url)
-	if err != nil {
-		if expectedStatus == 0 {
-			fmt.Println("Connection failed as expected:", err)
-			common.ExitSuccess()
-		}
-		fmt.Println("Connection failed unexpectedly:", err)
-		common.ExitFailure()
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == expectedStatus {
-		fmt.Printf("Connection succeeded with expected status code %d\n", expectedStatus)
-		common.ExitSuccess()
-	}
-
-	fmt.Printf("Connection succeeded but got status code %d, expected %d\n", resp.StatusCode, expectedStatus)
-	common.ExitFailure()
 }
