@@ -1,13 +1,15 @@
+CI := $(CI)
+
+ifndef CI
 # Check we've got the necessary tools installed...
 EXECUTABLES = go docker kind kubectl
 K := $(foreach exec,$(EXECUTABLES),\
         $(if $(shell which $(exec)), not found , $(error "No $(exec) in PATH")))
+endif
 
 # Set these to release new versions of the container
 RUNNER_SEMVER := "0.1.0"
 PROBE_SEMVER := "0.1.0"
-
-CI := $(CI)
 
 ifdef CI
 	RUNNER_VERSION := $(RUNNER_SEMVER)
@@ -87,3 +89,9 @@ run-example-test-plan: docker
 		--user $(id -u):$(id -g) \
 		nethax-runner:$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
 	rm -rf $$TMP_KUBECONFIG
+
+.PHONY: checks
+checks:
+	go vet -all ./...
+	go tool staticcheck ./...
+	go tool staticcheck -tests=false ./...
