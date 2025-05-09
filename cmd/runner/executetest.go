@@ -3,77 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/goccy/go-yaml"
 	"github.com/grafana/nethax/pkg/common"
 	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// Test represents a single network connectivity test
-type Test struct {
-	Name       string        `yaml:"name"`
-	Endpoint   string        `yaml:"endpoint"`
-	StatusCode int           `yaml:"statusCode"`
-	Type       string        `yaml:"type,omitempty"`
-	ExpectFail bool          `yaml:"expectFail,omitempty"`
-	Timeout    time.Duration `yaml:"timeout"`
-}
-
-// PodSelection represents how pods should be selected for testing
-type PodSelection struct {
-	Mode string `yaml:"mode"` // "all" or "random"
-}
-
-// TestTarget represents a pod target with multiple tests
-type TestTarget struct {
-	Name         string       `yaml:"name"`
-	PodSelector  string       `yaml:"podSelector"`
-	Namespace    string       `yaml:"namespace,omitempty"`
-	PodSelection PodSelection `yaml:"podSelection"`
-	Tests        []Test       `yaml:"tests"`
-}
-
-// TestPlan represents a collection of test targets with metadata
-type TestPlan struct {
-	Name        string       `yaml:"name"`
-	Description string       `yaml:"description"`
-	TestTargets []TestTarget `yaml:"testTargets"`
-}
-
-// ParseTestPlan reads YAML content and returns a TestPlan
-func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
-	var plan struct {
-		TestPlan TestPlan `yaml:"testPlan"`
-	}
-	if err := yaml.NewDecoder(reader).Decode(&plan); err != nil {
-		return nil, err
-	}
-
-	// Set default test type to HTTP(S)
-	for i, target := range plan.TestPlan.TestTargets {
-		for j, test := range target.Tests {
-			if test.Type == "" {
-				plan.TestPlan.TestTargets[i].Tests[j].Type = "HTTP(S)"
-			}
-		}
-	}
-	return &plan.TestPlan, nil
-}
-
-// GetTimeoutDuration converts the timeout in seconds to a time.Duration
-func (t *Test) GetTimeoutDuration() time.Duration {
-	return t.Timeout
-}
 
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
