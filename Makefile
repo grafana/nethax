@@ -87,3 +87,9 @@ run-example-test-plan: docker
 		--user $(id -u):$(id -g) \
 		nethax-runner:$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
 	rm -rf $$TMP_KUBECONFIG
+
+.PHONY: checks
+checks:
+	go vet -all ./...
+	go tool staticcheck ./...
+	go tool staticcheck -tests=false ./...
