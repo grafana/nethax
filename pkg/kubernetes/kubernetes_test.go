@@ -10,9 +10,9 @@ import (
 )
 
 func setup() *Kubernetes {
-	k := GetKubernetes("")
-	k.Client = testClient.NewSimpleClientset()
-	return k
+	return &Kubernetes{
+		Client: testClient.NewSimpleClientset(),
+	}
 }
 
 func TestGetPods(t *testing.T) {
