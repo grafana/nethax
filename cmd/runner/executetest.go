@@ -60,35 +60,41 @@ func indent(s string, level int) {
 	fmt.Println(strings.Repeat("  ", level) + s)
 }
 
+func indentf(level int, format string, a ...any) {
+	fmt.Print(strings.Repeat(" ", level))
+	fmt.Printf(format, a...)
+	fmt.Println()
+}
+
 func executeTest(ctx context.Context, plan *TestPlan) bool {
-	indent("Test Plan: "+plan.Name, 0)
-	indent("Description: "+plan.Description, 0)
+	indentf(0, "Test Plan: "+plan.Name)
+	indentf(0, "Description: "+plan.Description)
 	fmt.Println()
 
 	k := kubernetes.GetKubernetes("")
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {
-		indent("Target: "+target.Name, 1)
-		indent("Selector: "+target.PodSelector, 1)
+		indentf(1, "Target: "+target.Name)
+		indentf(1, "Selector: "+target.PodSelector)
 		if target.Namespace != "" {
-			indent("Namespace: "+target.Namespace, 1)
+			indentf(1, "Namespace: "+target.Namespace)
 		}
-		indent("Selection Mode: "+target.PodSelection.Mode, 1)
+		indentf(1, "Selection Mode: "+target.PodSelection.Mode)
 
 		// Find pods matching the selector
 		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(ctx, v1.ListOptions{
 			LabelSelector: target.PodSelector,
 		})
 		if err != nil {
-			indent(fmt.Sprintf("Error: Failed to find pods: %v", err), 1)
+			indentf(1, "Error: Failed to find pods: %v", err)
 			fmt.Println()
 			allTestsPassed = false
 			continue
 		}
 
 		if len(pods.Items) == 0 {
-			indent(fmt.Sprintf("Error: No pods found matching selector %s", target.PodSelector), 1)
+			indentf(1, "Error: No pods found matching selector %s", target.PodSelector)
 			fmt.Println()
 			allTestsPassed = false
 			continue
@@ -97,7 +103,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 		// Select pods based on the selection mode
 		var selectedPods []*corev1.Pod
 		if mode := target.PodSelection.Mode; mode != "all" && mode != "random" {
-			indent(fmt.Sprintf("Error: Invalid pod selection mode: %s", target.PodSelection.Mode), 1)
+			indentf(1, "Error: Invalid pod selection mode: %s", target.PodSelection.Mode)
 			fmt.Println()
 			allTestsPassed = false
 			continue
@@ -111,7 +117,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 		}
 
 		if len(selectedPods) == 0 {
-			indent(fmt.Sprintf("Warning: No ready pods found matching selector %s", target.PodSelector), 1)
+			indentf(1, "Warning: No ready pods found matching selector %s", target.PodSelector)
 			fmt.Println()
 			allTestsPassed = false
 			continue
@@ -123,26 +129,26 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 			selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
 		}
 
-		indent(fmt.Sprintf("Selected %d ready pod(s) for testing", len(selectedPods)), 1)
+		indentf(1, "Selected %d ready pod(s) for testing", len(selectedPods))
 
 		// Execute tests for each selected pod
 		for _, pod := range selectedPods {
-			indent(fmt.Sprintf("Pod: %s/%s", pod.Namespace, pod.Name), 1)
+			indentf(1, fmt.Sprintf("Pod: %s/%s", pod.Namespace, pod.Name))
 
 			// Execute each test for this pod
 			for _, test := range target.Tests {
-				indent("Test: "+test.Name, 2)
-				indent("Endpoint: "+test.Endpoint, 3)
-				indent("Type: "+test.Type, 3)
-				indent(fmt.Sprintf("Expected Status: %d", test.StatusCode), 3)
-				indent(fmt.Sprintf("Expect Fail: %v", test.ExpectFail), 3)
-				indent(fmt.Sprintf("Timeout: %s", test.Timeout.String()), 3)
+				indentf(2, "Test: "+test.Name)
+				indentf(3, "Endpoint: "+test.Endpoint)
+				indentf(3, "Type: "+test.Type)
+				indentf(3, "Expected Status: %d", test.StatusCode)
+				indentf(3, "Expect Fail: %v", test.ExpectFail)
+				indentf(3, "Timeout: %s", test.Timeout.String())
 
 				// Parse the endpoint URL for HTTP tests
 				if test.Type != "tcp" {
 					_, err := url.Parse(test.Endpoint)
 					if err != nil {
-						indent(fmt.Sprintf("Error: Invalid endpoint URL: %v", err), 3)
+						indentf(3, "Error: Invalid endpoint URL: %v", err)
 						fmt.Println()
 						allTestsPassed = false
 						continue
@@ -167,7 +173,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 				// Launch ephemeral container to execute the test
 				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, pod, command, arguments)
 				if err != nil {
-					indent(fmt.Sprintf("Error: Failed to launch ephemeral probe container: %v", err), 3)
+					indentf(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
 					allTestsPassed = false
 					continue
@@ -178,10 +184,10 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 
 				// Check if the test passed based on the probe's exit status
 				if exitStatus == 0 {
-					indent("Result: PASSED", 3)
+					indentf(3, "Result: PASSED")
 					fmt.Println()
 				} else {
-					indent(fmt.Sprintf("Result: FAILED (exit code: %d)", exitStatus), 3)
+					indentf(3, "Result: FAILED (exit code: %d)", exitStatus)
 					fmt.Println()
 					allTestsPassed = false
 				}
