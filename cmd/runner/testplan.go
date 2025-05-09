@@ -57,8 +57,3 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 	}
 	return &plan.TestPlan, nil
 }
-
-// GetTimeoutDuration converts the timeout in seconds to a time.Duration
-func (t *Test) GetTimeoutDuration() time.Duration {
-	return t.Timeout
-}
