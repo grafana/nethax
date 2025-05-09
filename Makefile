@@ -1,13 +1,15 @@
+CI := $(CI)
+
+ifndef CI
 # Check we've got the necessary tools installed...
 EXECUTABLES = go docker kind kubectl
 K := $(foreach exec,$(EXECUTABLES),\
         $(if $(shell which $(exec)), not found , $(error "No $(exec) in PATH")))
+endif
 
 # Set these to release new versions of the container
 RUNNER_SEMVER := "0.1.0"
 PROBE_SEMVER := "0.1.0"
-
-CI := $(CI)
 
 ifdef CI
 	RUNNER_VERSION := $(RUNNER_SEMVER)
