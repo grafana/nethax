@@ -43,7 +43,13 @@ func ExecuteTest() *cobra.Command {
 				common.ExitConfigError()
 			}
 
-			if !executeTest(cmd.Context(), plan) {
+			k, err := kubernetes.GetKubernetes("")
+			if err != nil {
+				cmd.Printf("Error creating Kubernetes client: %v\n", err)
+				common.ExitConfigError()
+			}
+
+			if !executeTest(cmd.Context(), k, plan) {
 				common.ExitFailure()
 			}
 		},
@@ -61,16 +67,11 @@ func indent(level int, format string, a ...any) {
 	fmt.Println()
 }
 
-func executeTest(ctx context.Context, plan *TestPlan) bool {
+func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) bool {
 	indent(0, "Test Plan: %s", plan.Name)
 	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
 
-	k, err := kubernetes.GetKubernetes("")
-	if err != nil {
-		// TODO
-		panic(err)
-	}
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {
