@@ -1,13 +1,25 @@
 package main
 
 import (
-	"log"
-	"os"
+	"fmt"
+	"strings"
+
+	"github.com/grafana/nethax/pkg/common"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	err := Execute(os.Args[1:])
-	if err != nil {
-		log.Fatalf("Error: %s", err)
+	root := &cobra.Command{
+		Use:   "runner --help",
+		Short: "nethax test runner",
+	}
+
+	root.AddCommand(ExecuteTest())
+
+	if err := root.Execute(); err != nil {
+		if !strings.Contains(err.Error(), "unknown command") {
+			fmt.Println(err)
+		}
+		common.ExitConfigError()
 	}
 }

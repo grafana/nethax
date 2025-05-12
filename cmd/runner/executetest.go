@@ -3,77 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/goccy/go-yaml"
 	"github.com/grafana/nethax/pkg/common"
 	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// Test represents a single network connectivity test
-type Test struct {
-	Name       string        `yaml:"name"`
-	Endpoint   string        `yaml:"endpoint"`
-	StatusCode int           `yaml:"statusCode"`
-	Type       string        `yaml:"type,omitempty"`
-	ExpectFail bool          `yaml:"expectFail,omitempty"`
-	Timeout    time.Duration `yaml:"timeout"`
-}
-
-// PodSelection represents how pods should be selected for testing
-type PodSelection struct {
-	Mode string `yaml:"mode"` // "all" or "random"
-}
-
-// TestTarget represents a pod target with multiple tests
-type TestTarget struct {
-	Name         string       `yaml:"name"`
-	PodSelector  string       `yaml:"podSelector"`
-	Namespace    string       `yaml:"namespace,omitempty"`
-	PodSelection PodSelection `yaml:"podSelection"`
-	Tests        []Test       `yaml:"tests"`
-}
-
-// TestPlan represents a collection of test targets with metadata
-type TestPlan struct {
-	Name        string       `yaml:"name"`
-	Description string       `yaml:"description"`
-	TestTargets []TestTarget `yaml:"testTargets"`
-}
-
-// ParseTestPlan reads YAML content and returns a TestPlan
-func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
-	var plan struct {
-		TestPlan TestPlan `yaml:"testPlan"`
-	}
-	if err := yaml.NewDecoder(reader).Decode(&plan); err != nil {
-		return nil, err
-	}
-
-	// Set default test type to HTTP(S)
-	for i, target := range plan.TestPlan.TestTargets {
-		for j, test := range target.Tests {
-			if test.Type == "" {
-				plan.TestPlan.TestTargets[i].Tests[j].Type = "HTTP(S)"
-			}
-		}
-	}
-	return &plan.TestPlan, nil
-}
-
-// GetTimeoutDuration converts the timeout in seconds to a time.Duration
-func (t *Test) GetTimeoutDuration() time.Duration {
-	return t.Timeout
-}
 
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
@@ -85,7 +26,7 @@ func ExecuteTest() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if testFile == "" {
 				cmd.Println("Error: test file must be specified")
-				cmd.Help()
+				cmd.Help() //nolint:errcheck
 				common.ExitConfigError()
 			}
 
@@ -94,7 +35,7 @@ func ExecuteTest() *cobra.Command {
 				cmd.Printf("Error opening test file: %v\n", err)
 				common.ExitConfigError()
 			}
-			defer file.Close()
+			defer file.Close() //nolint:errcheck
 
 			plan, err := ParseTestPlan(file)
 			if err != nil {
@@ -102,106 +43,73 @@ func ExecuteTest() *cobra.Command {
 				common.ExitConfigError()
 			}
 
-			if !executeTest(cmd.Context(), plan) {
+			k, err := kubernetes.GetKubernetes("")
+			if err != nil {
+				cmd.Printf("Error creating Kubernetes client: %v\n", err)
+				common.ExitConfigError()
+			}
+
+			if !executeTest(cmd.Context(), k, plan) {
 				common.ExitFailure()
 			}
 		},
 	}
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
-	cmd.MarkFlagRequired("file")
+	cmd.MarkFlagRequired("file") //nolint:errcheck
 
 	return cmd
 }
 
-// indent prints the given string with the specified number of spaces for indentation
-func indent(s string, level int) {
-	fmt.Println(strings.Repeat("  ", level) + s)
+func indent(level int, format string, a ...any) {
+	fmt.Print(strings.Repeat(" ", level))
+	fmt.Printf(format, a...)
+	fmt.Println()
 }
 
-func executeTest(ctx context.Context, plan *TestPlan) bool {
-	indent("Test Plan: "+plan.Name, 0)
-	indent("Description: "+plan.Description, 0)
+func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) bool {
+	indent(0, "Test Plan: %s", plan.Name)
+	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
 
-	k := kubernetes.GetKubernetes("")
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {
-		indent("Target: "+target.Name, 1)
-		indent("Selector: "+target.PodSelector, 1)
+		indent(1, "Target: %s", target.Name)
+		indent(1, "Selector: %s", target.PodSelector)
 		if target.Namespace != "" {
-			indent("Namespace: "+target.Namespace, 1)
+			indent(1, "Namespace: %s", target.Namespace)
 		}
-		indent("Selection Mode: "+target.PodSelection.Mode, 1)
+		indent(1, "Selection Mode: %s", target.PodSelection.Mode)
 
-		// Find pods matching the selector
-		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(ctx, v1.ListOptions{
-			LabelSelector: target.PodSelector,
-		})
+		selectedPods, err := findPods(ctx, k, target.PodSelection.Mode, target.Namespace, target.PodSelector)
 		if err != nil {
-			indent(fmt.Sprintf("Error: Failed to find pods: %v", err), 1)
+			indent(1, "Error: %v", err)
 			fmt.Println()
 			allTestsPassed = false
 			continue
 		}
 
-		if len(pods.Items) == 0 {
-			indent(fmt.Sprintf("Error: No pods found matching selector %s", target.PodSelector), 1)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		// Select pods based on the selection mode
-		var selectedPods []*corev1.Pod
-		if mode := target.PodSelection.Mode; mode != "all" && mode != "random" {
-			indent(fmt.Sprintf("Error: Invalid pod selection mode: %s", target.PodSelection.Mode), 1)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		// Only select pods that have Ready condition set to true
-		for i := range pods.Items {
-			if isPodReady(&pods.Items[i]) {
-				selectedPods = append(selectedPods, &pods.Items[i])
-			}
-		}
-
-		if len(selectedPods) == 0 {
-			indent(fmt.Sprintf("Warning: No ready pods found matching selector %s", target.PodSelector), 1)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		if target.PodSelection.Mode == "random" {
-			// Select one random pod from the ready pods
-			randomIndex := rand.Intn(len(selectedPods))
-			selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
-		}
-
-		indent(fmt.Sprintf("Selected %d ready pod(s) for testing", len(selectedPods)), 1)
+		indent(1, "Selected %d ready pod(s) for testing", len(selectedPods))
 
 		// Execute tests for each selected pod
 		for _, pod := range selectedPods {
-			indent(fmt.Sprintf("Pod: %s/%s", pod.Namespace, pod.Name), 1)
+			indent(1, "Pod: %s/%s", pod.Namespace, pod.Name)
 
 			// Execute each test for this pod
 			for _, test := range target.Tests {
-				indent("Test: "+test.Name, 2)
-				indent("Endpoint: "+test.Endpoint, 3)
-				indent("Type: "+test.Type, 3)
-				indent(fmt.Sprintf("Expected Status: %d", test.StatusCode), 3)
-				indent(fmt.Sprintf("Expect Fail: %v", test.ExpectFail), 3)
-				indent(fmt.Sprintf("Timeout: %s", test.Timeout.String()), 3)
+				indent(2, "Test: %s", test.Name)
+				indent(3, "Endpoint: %s", test.Endpoint)
+				indent(3, "Type: %s", test.Type)
+				indent(3, "Expected Status: %d", test.StatusCode)
+				indent(3, "Expect Fail: %v", test.ExpectFail)
+				indent(3, "Timeout: %s", test.Timeout.String())
 
 				// Parse the endpoint URL for HTTP tests
 				if test.Type != "tcp" {
 					_, err := url.Parse(test.Endpoint)
 					if err != nil {
-						indent(fmt.Sprintf("Error: Invalid endpoint URL: %v", err), 3)
+						indent(3, "Error: Invalid endpoint URL: %v", err)
 						fmt.Println()
 						allTestsPassed = false
 						continue
@@ -226,7 +134,7 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 				// Launch ephemeral container to execute the test
 				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, pod, command, arguments)
 				if err != nil {
-					indent(fmt.Sprintf("Error: Failed to launch ephemeral probe container: %v", err), 3)
+					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
 					allTestsPassed = false
 					continue
@@ -237,10 +145,10 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 
 				// Check if the test passed based on the probe's exit status
 				if exitStatus == 0 {
-					indent("Result: PASSED", 3)
+					indent(3, "Result: PASSED")
 					fmt.Println()
 				} else {
-					indent(fmt.Sprintf("Result: FAILED (exit code: %d)", exitStatus), 3)
+					indent(3, "Result: FAILED (exit code: %d)", exitStatus)
 					fmt.Println()
 					allTestsPassed = false
 				}
@@ -259,4 +167,44 @@ func isPodReady(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]*corev1.Pod, error) {
+	if mode := mode; mode != "all" && mode != "random" {
+		return nil, fmt.Errorf("invalid pod selection mode: %s", mode)
+	}
+
+	// Find pods matching the selector
+	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pods: %w", err)
+	}
+
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("no pods found matching selector %s", selector)
+	}
+
+	var selectedPods []*corev1.Pod
+
+	// Only select pods that have Ready condition set to true
+	for i := range pods.Items {
+		if isPodReady(&pods.Items[i]) {
+			selectedPods = append(selectedPods, &pods.Items[i])
+		}
+	}
+
+	if len(selectedPods) == 0 {
+		return nil, fmt.Errorf("no ready pods found matching selector %s", selector)
+	}
+
+	// Select pods based on the selection mode
+	if mode == "random" {
+		// Select one random pod from the ready pods
+		randomIndex := rand.Intn(len(selectedPods))
+		selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
+	}
+
+	return selectedPods, nil
 }
