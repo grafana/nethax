@@ -82,51 +82,12 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 		}
 		indent(1, "Selection Mode: %s", target.PodSelection.Mode)
 
-		// Find pods matching the selector
-		pods, err := k.Client.CoreV1().Pods(target.Namespace).List(ctx, v1.ListOptions{
-			LabelSelector: target.PodSelector,
-		})
+		selectedPods, err := findPods(ctx, k, target.PodSelection.Mode, target.Namespace, target.PodSelector)
 		if err != nil {
-			indent(1, "Error: Failed to find pods: %v", err)
+			indent(1, "Error: %v", err)
 			fmt.Println()
 			allTestsPassed = false
 			continue
-		}
-
-		if len(pods.Items) == 0 {
-			indent(1, "Error: No pods found matching selector %s", target.PodSelector)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		// Select pods based on the selection mode
-		var selectedPods []*corev1.Pod
-		if mode := target.PodSelection.Mode; mode != "all" && mode != "random" {
-			indent(1, "Error: Invalid pod selection mode: %s", target.PodSelection.Mode)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		// Only select pods that have Ready condition set to true
-		for i := range pods.Items {
-			if isPodReady(&pods.Items[i]) {
-				selectedPods = append(selectedPods, &pods.Items[i])
-			}
-		}
-
-		if len(selectedPods) == 0 {
-			indent(1, "Warning: No ready pods found matching selector %s", target.PodSelector)
-			fmt.Println()
-			allTestsPassed = false
-			continue
-		}
-
-		if target.PodSelection.Mode == "random" {
-			// Select one random pod from the ready pods
-			randomIndex := rand.Intn(len(selectedPods))
-			selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
 		}
 
 		indent(1, "Selected %d ready pod(s) for testing", len(selectedPods))
@@ -206,4 +167,44 @@ func isPodReady(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]*corev1.Pod, error) {
+	if mode := mode; mode != "all" && mode != "random" {
+		return nil, fmt.Errorf("invalid pod selection mode: %s", mode)
+	}
+
+	// Find pods matching the selector
+	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pods: %w", err)
+	}
+
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("no pods found matching selector %s", selector)
+	}
+
+	var selectedPods []*corev1.Pod
+
+	// Only select pods that have Ready condition set to true
+	for i := range pods.Items {
+		if isPodReady(&pods.Items[i]) {
+			selectedPods = append(selectedPods, &pods.Items[i])
+		}
+	}
+
+	if len(selectedPods) == 0 {
+		return nil, fmt.Errorf("no ready pods found matching selector %s", selector)
+	}
+
+	// Select pods based on the selection mode
+	if mode == "random" {
+		// Select one random pod from the ready pods
+		randomIndex := rand.Intn(len(selectedPods))
+		selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
+	}
+
+	return selectedPods, nil
 }
