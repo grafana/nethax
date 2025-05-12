@@ -66,7 +66,11 @@ func executeTest(ctx context.Context, plan *TestPlan) bool {
 	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
 
-	k := kubernetes.GetKubernetes("")
+	k, err := kubernetes.GetKubernetes("")
+	if err != nil {
+		// TODO
+		panic(err)
+	}
 	allTestsPassed := true
 
 	for _, target := range plan.TestTargets {

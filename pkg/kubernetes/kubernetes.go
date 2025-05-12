@@ -24,33 +24,7 @@ var (
 	ProbeImageVersion = "latest"
 )
 
-var (
-	// Singleton for Kubernetes access
-	instance *Kubernetes = &Kubernetes{}
-)
-
-func makeKubeClient() {
-	client, err := kubernetes.NewForConfig(instance.Config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	instance.Client = client
-}
-
-func GetKubernetes(context string) *Kubernetes {
-	if instance.Config == nil {
-		fetchKubeConfig(context)
-	}
-	if instance.Client == nil {
-		makeKubeClient()
-	}
-
-	// you are now ready to Kubernetes.
-	return instance
-}
-
-func fetchKubeConfig(context string) {
+func GetKubernetes(context string) (*Kubernetes, error) {
 	// attempt to use config from pod service account
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -67,11 +41,19 @@ func fetchKubeConfig(context string) {
 		).ClientConfig()
 
 		if err != nil {
-			panic(err.Error())
+			return nil, fmt.Errorf("fetching Kubernetes configuration: %w", err)
 		}
 	}
 
-	instance.Config = config
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
+	}
+
+	return &Kubernetes{
+		Client: client,
+		Config: config,
+	}, nil
 }
 
 type Kubernetes struct {
