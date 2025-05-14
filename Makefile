@@ -92,8 +92,7 @@ run-example-test-plan: docker
 
 .PHONY: checks
 checks:
-	go mod tidy --diff | grep ^ && echo "Please run go mod tidy to fix dependencies!"
-	@go mod tidy --diff | grep ^ > /dev/null && exit 1 || true
+	go mod tidy --diff | grep ^ && exit 1 || true
 	go vet -all ./...
 	go tool staticcheck ./...
 	go tool staticcheck -tests=false ./...
