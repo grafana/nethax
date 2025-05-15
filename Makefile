@@ -47,13 +47,13 @@ deps:
 docker: docker-runner docker-probe
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION="'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -t nethax-runner:$(RUNNER_VERSION) .
+	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-runner:$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION="'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -t nethax-probe:$(PROBE_VERSION) .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
 endif

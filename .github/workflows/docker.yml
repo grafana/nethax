@@ -19,7 +19,7 @@ env:
     type=semver,pattern={{ version }}
 
 jobs:
-  build:
+  docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
