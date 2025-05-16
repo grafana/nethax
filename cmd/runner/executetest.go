@@ -14,7 +14,6 @@ import (
 	"github.com/grafana/nethax/pkg/kubernetes"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ExecuteTest returns the execute-test command
@@ -44,7 +43,7 @@ func ExecuteTest() *cobra.Command {
 				common.ExitConfigError()
 			}
 
-			k, err := kubernetes.GetKubernetes("")
+			k, err := kubernetes.New("")
 			if err != nil {
 				cmd.Printf("Error creating Kubernetes client: %v\n", err)
 				common.ExitConfigError()
@@ -171,19 +170,12 @@ func isPodReady(pod *corev1.Pod) bool {
 }
 
 func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]corev1.Pod, error) {
-	// Find pods matching the selector
-	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{
-		LabelSelector: selector,
-	})
+	pods, err := k.GetPods(ctx, namespace, selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find pods: %w", err)
 	}
 
-	if len(pods.Items) == 0 {
-		return nil, fmt.Errorf("no pods found matching selector %s", selector)
-	}
-
-	return selectPods(mode, pods.Items)
+	return selectPods(mode, pods)
 }
 
 var (
