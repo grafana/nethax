@@ -12,13 +12,13 @@ import (
 
 func setup() *Kubernetes {
 	return &Kubernetes{
-		Client: testClient.NewSimpleClientset(),
+		client: testClient.NewSimpleClientset(),
 	}
 }
 
 func TestGetPods(t *testing.T) {
 	k := &Kubernetes{
-		Client: testClient.NewSimpleClientset(
+		client: testClient.NewSimpleClientset(
 			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "nethax",
@@ -101,7 +101,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	name := "grafanyaa"
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: name}}
-	k.Client.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
+	k.client.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: name,
@@ -113,7 +113,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 			},
 		},
 	}
-	k.Client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
+	k.client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
 
 	// execute
 	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, []string{"nyaa"}, []string{"rawr"})
@@ -124,6 +124,6 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	}
 
 	// clean up
-	k.Client.CoreV1().Pods(name).Delete(t.Context(), name, metav1.DeleteOptions{})
-	k.Client.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{})
+	k.client.CoreV1().Pods(name).Delete(t.Context(), name, metav1.DeleteOptions{})
+	k.client.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{})
 }

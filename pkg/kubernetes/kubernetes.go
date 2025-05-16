@@ -52,20 +52,20 @@ func GetKubernetes(context string) (*Kubernetes, error) {
 	}
 
 	return &Kubernetes{
-		Client: client,
-		Config: config,
+		client: client,
+		config: config,
 	}, nil
 }
 
 type Kubernetes struct {
-	Config *rest.Config
-	Client kubernetes.Interface
+	config *rest.Config
+	client kubernetes.Interface
 }
 
 var errNoPodsFound = errors.New("no pods found")
 
 func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
-	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+	pods, err := k.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: selector,
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 		return nil, ephemeralName, fmt.Errorf("error creating patch to add debug container: %v", err)
 	}
 
-	pods := k.Client.CoreV1().Pods(pod.Namespace)
+	pods := k.client.CoreV1().Pods(pod.Namespace)
 	result, err := pods.Patch(ctx, pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
 	if err != nil {
 		return nil, ephemeralName, fmt.Errorf("error patching pod with debug container: %v", err)
@@ -128,7 +128,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 }
 
 func (k *Kubernetes) getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
-	pod, err := k.Client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+	pod, err := k.client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		return -1, err
 	}
