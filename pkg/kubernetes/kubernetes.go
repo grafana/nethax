@@ -25,7 +25,9 @@ var (
 	ProbeImageVersion = "latest"
 )
 
-func GetKubernetes(context string) (*Kubernetes, error) {
+// New returns a new Kubernetes object, connected to the given
+// context, or to the in-cluster API if blank.
+func New(context string) (*Kubernetes, error) {
 	// attempt to use config from pod service account
 	config, err := rest.InClusterConfig()
 	if err != nil {

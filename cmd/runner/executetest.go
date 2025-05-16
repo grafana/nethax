@@ -43,7 +43,7 @@ func ExecuteTest() *cobra.Command {
 				common.ExitConfigError()
 			}
 
-			k, err := kubernetes.GetKubernetes("")
+			k, err := kubernetes.New("")
 			if err != nil {
 				cmd.Printf("Error creating Kubernetes client: %v\n", err)
 				common.ExitConfigError()
