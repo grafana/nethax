@@ -17,10 +17,13 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	testFile             string
+	netHaxProbeContainer string
+)
+
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
-	var testFile string
-
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
 		Short: "Execute network connectivity test plan",
@@ -57,6 +60,7 @@ func ExecuteTest() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
+	cmd.Flags().StringVarP(&netHaxProbeContainer, "probe-container", "p", "grafana/nethax-probe", "The name of the image used for the ephemeral probe container. Must be a valid Kubernetes container image name.")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
 
 	return cmd
@@ -133,7 +137,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				}
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, netHaxProbeContainer, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
