@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -197,6 +198,39 @@ func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, se
 
 	if len(selectedPods) == 0 {
 		return nil, fmt.Errorf("no ready pods found matching selector %s", selector)
+	}
+
+	// Select pods based on the selection mode
+	if mode == "random" {
+		// Select one random pod from the ready pods
+		randomIndex := rand.Intn(len(selectedPods))
+		selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
+	}
+
+	return selectedPods, nil
+}
+
+var (
+	errInvalidSelectionMode = errors.New("invalid pod selection mode")
+	errNoReadyPods          = errors.New("no ready pods found")
+)
+
+func selectPods(mode string, pods []*corev1.Pod) ([]*corev1.Pod, error) {
+	if mode := mode; mode != "all" && mode != "random" {
+		return nil, fmt.Errorf("%w: %s", errInvalidSelectionMode, mode)
+	}
+
+	var selectedPods []*corev1.Pod
+
+	// Only select pods that have Ready condition set to true
+	for i := range pods {
+		if isPodReady(pods[i]) {
+			selectedPods = append(selectedPods, pods[i])
+		}
+	}
+
+	if len(selectedPods) == 0 {
+		return nil, errNoReadyPods
 	}
 
 	// Select pods based on the selection mode
