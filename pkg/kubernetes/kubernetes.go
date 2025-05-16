@@ -28,24 +28,9 @@ var (
 // New returns a new Kubernetes object, connected to the given
 // context, or to the in-cluster API if blank.
 func New(context string) (*Kubernetes, error) {
-	// attempt to use config from pod service account
-	config, err := rest.InClusterConfig()
+	config, err := getClusterConfig(context)
 	if err != nil {
-		// Can be overridden by KUBECONFIG variable
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		configOverride := &clientcmd.ConfigOverrides{}
-		if context != "" {
-			configOverride.CurrentContext = context
-		}
-
-		config, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			loadingRules,
-			configOverride,
-		).ClientConfig()
-
-		if err != nil {
-			return nil, fmt.Errorf("fetching Kubernetes configuration: %w", err)
-		}
+		return nil, fmt.Errorf("fetching Kubernetes configuration: %w", err)
 	}
 
 	client, err := kubernetes.NewForConfig(config)
@@ -57,6 +42,24 @@ func New(context string) (*Kubernetes, error) {
 		client: client,
 		config: config,
 	}, nil
+}
+
+func getClusterConfig(kontext string) (*rest.Config, error) {
+	if kontext == "" {
+		// attempt to use config from pod service account
+		return rest.InClusterConfig()
+	}
+
+	// Can be overridden by KUBECONFIG variable
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverride := &clientcmd.ConfigOverrides{
+		CurrentContext: kontext,
+	}
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		loadingRules,
+		configOverride,
+	).ClientConfig()
 }
 
 type Kubernetes struct {
