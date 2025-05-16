@@ -47,15 +47,15 @@ deps:
 docker: docker-runner docker-probe
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) .
+	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t grafana/nethax-runner:$(RUNNER_VERSION) .
 ifndef CI
-	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-runner:$(RUNNER_VERSION) || true
+	@kind load docker-image --name $(KIND_CLUSTER_NAME) grafana/nethax-runner:$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t grafana/nethax-probe:$(PROBE_VERSION) .
 ifndef CI
-	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
+	@kind load docker-image --name $(KIND_CLUSTER_NAME) grafana/nethax-probe:$(PROBE_VERSION) || true
 endif
 
 .PHONY: test
@@ -87,7 +87,7 @@ run-example-test-plan: docker
 		--mount "type=bind,source=$(TEST_PLAN),target=/test-plan.yaml,readonly" \
 		-e "KUBECONFIG=/.kube/config" \
 		--user $(id -u):$(id -g) \
-		nethax-runner:$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
+		grafana/nethax-runner:$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
 	rm -rf $$TMP_KUBECONFIG
 
 .PHONY: checks

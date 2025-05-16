@@ -84,7 +84,7 @@ func chooseTargetContainer(pod *corev1.Pod) string {
 	return pod.Spec.Containers[0].Name
 }
 
-func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
+func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, nethaxProbeContainer string, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
@@ -95,7 +95,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
+			Image:   fmt.Sprintf("%s:%s", nethaxProbeContainer, ProbeImageVersion),
 			Command: command,
 			Args:    args,
 		},
