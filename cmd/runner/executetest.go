@@ -133,7 +133,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				}
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
@@ -170,7 +170,7 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]*corev1.Pod, error) {
+func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]corev1.Pod, error) {
 	// Find pods matching the selector
 	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{
 		LabelSelector: selector,
@@ -183,13 +183,7 @@ func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, se
 		return nil, fmt.Errorf("no pods found matching selector %s", selector)
 	}
 
-	// we need to pass a slice of pointers
-	items := make([]*corev1.Pod, len(pods.Items))
-	for i, p := range pods.Items {
-		items[i] = &p
-	}
-
-	return selectPods(mode, items)
+	return selectPods(mode, pods.Items)
 }
 
 var (
@@ -197,16 +191,16 @@ var (
 	errNoReadyPods          = errors.New("no ready pods found")
 )
 
-func selectPods(mode string, pods []*corev1.Pod) ([]*corev1.Pod, error) {
+func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
 	if mode := mode; mode != "all" && mode != "random" {
 		return nil, fmt.Errorf("%w: %s", errInvalidSelectionMode, mode)
 	}
 
-	var selectedPods []*corev1.Pod
+	var selectedPods []corev1.Pod
 
 	// Only select pods that have Ready condition set to true
 	for i := range pods {
-		if isPodReady(pods[i]) {
+		if isPodReady(&pods[i]) {
 			selectedPods = append(selectedPods, pods[i])
 		}
 	}
@@ -219,7 +213,7 @@ func selectPods(mode string, pods []*corev1.Pod) ([]*corev1.Pod, error) {
 	if mode == "random" {
 		// Select one random pod from the ready pods
 		randomIndex := rand.Intn(len(selectedPods))
-		selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
+		selectedPods = []corev1.Pod{selectedPods[randomIndex]}
 	}
 
 	return selectedPods, nil

@@ -89,10 +89,10 @@ func TestIsPodReady(t *testing.T) {
 	})
 }
 
-func mockPods(conds []corev1.PodCondition) []*corev1.Pod {
-	pods := make([]*corev1.Pod, len(conds))
+func mockPods(conds []corev1.PodCondition) []corev1.Pod {
+	pods := make([]corev1.Pod, len(conds))
 	for i, c := range conds {
-		pods[i] = &corev1.Pod{
+		pods[i] = corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("pod-%03d", i),
 			},
@@ -123,14 +123,14 @@ func TestSelectPods(t *testing.T) {
 	})
 
 	// naive pod comparison for checks
-	cmp := func(a, b *corev1.Pod) bool {
+	cmp := func(a, b corev1.Pod) bool {
 		return a.Name == b.Name
 	}
 
 	tests := map[string]struct {
 		mode string
-		pods []*corev1.Pod
-		exp  []*corev1.Pod
+		pods []corev1.Pod
+		exp  []corev1.Pod
 		err  error
 	}{
 		// errors
@@ -139,7 +139,7 @@ func TestSelectPods(t *testing.T) {
 
 		// all pods selection mode
 		"all pods": {"all", allPodsReady, allPodsReady, nil},
-		"all ready pods": {"all", somePodsReady, []*corev1.Pod{
+		"all ready pods": {"all", somePodsReady, []corev1.Pod{
 			somePodsReady[0], somePodsReady[3],
 		}, nil},
 
@@ -157,7 +157,7 @@ func TestSelectPods(t *testing.T) {
 
 			// only ready pods selected
 			for i, p := range got {
-				if !isPodReady(p) {
+				if !isPodReady(&p) {
 					t.Fatalf("found non-ready pod %v at index %d", p, i)
 				}
 			}
@@ -169,14 +169,14 @@ func TestSelectPods(t *testing.T) {
 				if len(got) != 1 {
 					t.Fatalf("expecting 1 pod returned, got %d -> %v", len(got), got)
 				}
-				if exp := got[0]; !slices.ContainsFunc(got, func(pod *corev1.Pod) bool {
+				if exp := got[0]; !slices.ContainsFunc(got, func(pod corev1.Pod) bool {
 					return cmp(exp, pod)
 				}) {
 					t.Fatalf("returned pod not found in input\nin: %v\ngot: %v", tt.pods, exp)
 				}
 
 			case "all":
-				eq := slices.EqualFunc(tt.exp, got, func(a, b *corev1.Pod) bool {
+				eq := slices.EqualFunc(tt.exp, got, func(a, b corev1.Pod) bool {
 					return cmp(a, b)
 				})
 				if !eq {
@@ -201,7 +201,7 @@ type podDump struct {
 
 func (d podDump) String() string { return fmt.Sprintf("{Name: %s, Conds: %v}", d.Name, d.Conds) }
 
-func dumpPods(pods []*corev1.Pod) []podDump {
+func dumpPods(pods []corev1.Pod) []podDump {
 	res := make([]podDump, len(pods))
 	for i, p := range pods {
 		d := podDump{Name: p.Name}
