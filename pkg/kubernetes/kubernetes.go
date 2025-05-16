@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -61,19 +62,21 @@ type Kubernetes struct {
 	Client kubernetes.Interface
 }
 
-func (k *Kubernetes) GetPods(ctx context.Context, namespace string) []string {
-	pods, err := k.Client.CoreV1().Pods(namespace).List(
-		ctx,
-		metav1.ListOptions{})
+var errNoPodsFound = errors.New("no pods found")
 
+func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
+	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: selector,
+	})
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("listing pods for namespace %s and selector %q: %w", namespace, selector, err)
 	}
-	podNames := []string{}
-	for _, pod := range pods.Items {
-		podNames = append(podNames, pod.Name)
+
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("%w: namespace %s, selector %q", errNoPodsFound, namespace, selector)
 	}
-	return podNames
+
+	return pods.Items, nil
 }
 
 func chooseTargetContainer(pod *corev1.Pod) string {

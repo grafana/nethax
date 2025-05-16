@@ -1,7 +1,8 @@
 package kubernetes
 
 import (
-	"reflect"
+	"errors"
+	"fmt"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,31 +17,81 @@ func setup() *Kubernetes {
 }
 
 func TestGetPods(t *testing.T) {
-	// prepare
-	k := setup()
-	expected := []string{"grafanyaa"}
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: expected[0]}}
-	k.Client.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: expected[0],
-			Name:      expected[0],
-		},
+	k := &Kubernetes{
+		Client: testClient.NewSimpleClientset(
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "nethax",
+					Name:      "example-pod-001",
+					Labels: map[string]string{
+						"app": "nethax",
+					},
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "foo-bar-42",
+				},
+			},
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "grafana",
+					Name:      "example-pod-002",
+					Labels: map[string]string{
+						"app": "grafana",
+					},
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "foo-bar-42",
+				},
+			},
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "nethax",
+					Name:      "example-pod-002",
+					Labels: map[string]string{
+						"app": "nethax",
+					},
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "lorem-ipsum-23",
+				},
+			},
+		),
 	}
-	k.Client.CoreV1().Pods(expected[0]).Create(t.Context(), pod, metav1.CreateOptions{})
 
-	// execute
-	actual := k.GetPods(t.Context(), expected[0])
+	t.Run("not found", func(t *testing.T) {
+		tests := []struct {
+			ns, sel string
+		}{
+			{corev1.NamespaceAll, "app=redis"},
+			{"nethax", "app=postgresql"},
+			{"grafana", "app=nethax"},
+			{"mimir", ""},
+		}
 
-	// assert
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Wanted %s, got %s", expected, actual)
-	}
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("ns=%s,sel=%s", tt.ns, tt.sel), func(t *testing.T) {
+				pods, err := k.GetPods(t.Context(), tt.ns, tt.sel)
+				if !errors.Is(err, errNoPodsFound) {
+					t.Fatalf("expecting error %v, got %v", errNoPodsFound, err)
+				}
 
-	// clean up
-	k.Client.CoreV1().Pods(expected[0]).Delete(t.Context(), expected[0], metav1.DeleteOptions{})
-	k.Client.CoreV1().Namespaces().Delete(t.Context(), expected[0], metav1.DeleteOptions{})
+				if len(pods) != 0 {
+					t.Fatalf("expecting no pods to be returned, got %v", pods)
+				}
+			})
+		}
+	})
+
+	t.Run("found", func(t *testing.T) {
+		pods, err := k.GetPods(t.Context(), "nethax", "app=nethax")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(pods) == 0 {
+			t.Fatal("expecting pods, none found")
+		}
+	})
 }
 
 func TestLaunchEphemeralContainer(t *testing.T) {
