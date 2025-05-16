@@ -40,7 +40,6 @@ func New(context string) (*Kubernetes, error) {
 
 	return &Kubernetes{
 		client: client,
-		config: config,
 	}, nil
 }
 
@@ -63,7 +62,6 @@ func getClusterConfig(kontext string) (*rest.Config, error) {
 }
 
 type Kubernetes struct {
-	config *rest.Config
 	client kubernetes.Interface
 }
 
