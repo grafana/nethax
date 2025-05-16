@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -65,7 +64,10 @@ type Kubernetes struct {
 	client kubernetes.Interface
 }
 
-var errNoPodsFound = errors.New("no pods found")
+var (
+	errNoPodsFound       = errors.New("no pods found")
+	errNoContainersInPod = errors.New("no containers in pod")
+)
 
 func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
 	pods, err := k.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
@@ -82,12 +84,12 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([
 	return pods.Items, nil
 }
 
-func chooseTargetContainer(pod *corev1.Pod) string {
+func chooseTargetContainer(pod *corev1.Pod) (string, error) {
 	// TODO add capability to pick container by name (currently assume 0th container)
 	if len(pod.Spec.Containers) == 0 {
-		log.Fatalf("Error: No containers in pod.")
+		return "", errNoContainersInPod
 	}
-	return pod.Spec.Containers[0].Name
+	return pod.Spec.Containers[0].Name, nil
 }
 
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
@@ -98,6 +100,11 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
+	targetContainer, err := chooseTargetContainer(pod)
+	if err != nil {
+		return nil, "", fmt.Errorf("choosing target container: %w", err)
+	}
+
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
@@ -105,7 +112,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 			Command: command,
 			Args:    args,
 		},
-		TargetContainerName: chooseTargetContainer(pod),
+		TargetContainerName: targetContainer,
 	}
 
 	debugPod := pod.DeepCopy()
