@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	"github.com/goccy/go-yaml"
 )
 
 // Test represents a single network connectivity test
