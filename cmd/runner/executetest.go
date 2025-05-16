@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -132,7 +133,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				}
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
@@ -169,11 +170,7 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]*corev1.Pod, error) {
-	if mode := mode; mode != "all" && mode != "random" {
-		return nil, fmt.Errorf("invalid pod selection mode: %s", mode)
-	}
-
+func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]corev1.Pod, error) {
 	// Find pods matching the selector
 	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{
 		LabelSelector: selector,
@@ -186,24 +183,37 @@ func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, se
 		return nil, fmt.Errorf("no pods found matching selector %s", selector)
 	}
 
-	var selectedPods []*corev1.Pod
+	return selectPods(mode, pods.Items)
+}
+
+var (
+	errInvalidSelectionMode = errors.New("invalid pod selection mode")
+	errNoReadyPods          = errors.New("no ready pods found")
+)
+
+func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
+	if mode := mode; mode != "all" && mode != "random" {
+		return nil, fmt.Errorf("%w: %s", errInvalidSelectionMode, mode)
+	}
+
+	var selectedPods []corev1.Pod
 
 	// Only select pods that have Ready condition set to true
-	for i := range pods.Items {
-		if isPodReady(&pods.Items[i]) {
-			selectedPods = append(selectedPods, &pods.Items[i])
+	for i := range pods {
+		if isPodReady(&pods[i]) {
+			selectedPods = append(selectedPods, pods[i])
 		}
 	}
 
 	if len(selectedPods) == 0 {
-		return nil, fmt.Errorf("no ready pods found matching selector %s", selector)
+		return nil, errNoReadyPods
 	}
 
 	// Select pods based on the selection mode
 	if mode == "random" {
 		// Select one random pod from the ready pods
 		randomIndex := rand.Intn(len(selectedPods))
-		selectedPods = []*corev1.Pod{selectedPods[randomIndex]}
+		selectedPods = []corev1.Pod{selectedPods[randomIndex]}
 	}
 
 	return selectedPods, nil
