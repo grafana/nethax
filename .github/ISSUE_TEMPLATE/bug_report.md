@@ -25,8 +25,8 @@ If applicable, add your test plan(s) and link them here.
 
 **Development Environment (please complete the following information):**
 Runner: (if applicable)
- - OS: 
- - Run in Docker?: No/Yes(Container Tag)
+- OS: 
+- Run in Docker?: No/Yes(Container Tag)
 - Kubernetes Version: 
 
 Probe:
