@@ -43,21 +43,25 @@ func New(context string) (*Kubernetes, error) {
 }
 
 func getClusterConfig(kontext string) (*rest.Config, error) {
-	if kontext == "" {
-		// attempt to use config from pod service account
-		return rest.InClusterConfig()
+	// attempt to use config from pod service account
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		// Can be overridden by KUBECONFIG variable
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverride := &clientcmd.ConfigOverrides{
+			CurrentContext: kontext,
+		}
+
+		cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			loadingRules,
+			configOverride,
+		).ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("loading Kubernetes configuration: %w", err)
+		}
 	}
 
-	// Can be overridden by KUBECONFIG variable
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverride := &clientcmd.ConfigOverrides{
-		CurrentContext: kontext,
-	}
-
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		loadingRules,
-		configOverride,
-	).ClientConfig()
+	return cfg, nil
 }
 
 type Kubernetes struct {
