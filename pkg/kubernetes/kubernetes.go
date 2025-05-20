@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,25 +24,12 @@ var (
 	ProbeImageVersion = "latest"
 )
 
-func GetKubernetes(context string) (*Kubernetes, error) {
-	// attempt to use config from pod service account
-	config, err := rest.InClusterConfig()
+// New returns a new Kubernetes object, connected to the given
+// context, or to the in-cluster API if blank.
+func New(context string) (*Kubernetes, error) {
+	config, err := getClusterConfig(context)
 	if err != nil {
-		// Can be overridden by KUBECONFIG variable
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		configOverride := &clientcmd.ConfigOverrides{}
-		if context != "" {
-			configOverride.CurrentContext = context
-		}
-
-		config, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			loadingRules,
-			configOverride,
-		).ClientConfig()
-
-		if err != nil {
-			return nil, fmt.Errorf("fetching Kubernetes configuration: %w", err)
-		}
+		return nil, fmt.Errorf("fetching Kubernetes configuration: %w", err)
 	}
 
 	client, err := kubernetes.NewForConfig(config)
@@ -51,37 +38,62 @@ func GetKubernetes(context string) (*Kubernetes, error) {
 	}
 
 	return &Kubernetes{
-		Client: client,
-		Config: config,
+		client: client,
 	}, nil
 }
 
-type Kubernetes struct {
-	Config *rest.Config
-	Client kubernetes.Interface
-}
-
-func (k *Kubernetes) GetPods(ctx context.Context, namespace string) []string {
-	pods, err := k.Client.CoreV1().Pods(namespace).List(
-		ctx,
-		metav1.ListOptions{})
-
+func getClusterConfig(kontext string) (*rest.Config, error) {
+	// attempt to use config from pod service account
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		panic(err.Error())
+		// Can be overridden by KUBECONFIG variable
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverride := &clientcmd.ConfigOverrides{
+			CurrentContext: kontext,
+		}
+
+		cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			loadingRules,
+			configOverride,
+		).ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("loading Kubernetes configuration: %w", err)
+		}
 	}
-	podNames := []string{}
-	for _, pod := range pods.Items {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
+
+	return cfg, nil
 }
 
-func chooseTargetContainer(pod *corev1.Pod) string {
+type Kubernetes struct {
+	client kubernetes.Interface
+}
+
+var (
+	errNoPodsFound       = errors.New("no pods found")
+	errNoContainersInPod = errors.New("no containers in pod")
+)
+
+func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
+	pods, err := k.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing pods for namespace %s and selector %q: %w", namespace, selector, err)
+	}
+
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("%w: namespace %s, selector %q", errNoPodsFound, namespace, selector)
+	}
+
+	return pods.Items, nil
+}
+
+func chooseTargetContainer(pod *corev1.Pod) (string, error) {
 	// TODO add capability to pick container by name (currently assume 0th container)
 	if len(pod.Spec.Containers) == 0 {
-		log.Fatalf("Error: No containers in pod.")
+		return "", errNoContainersInPod
 	}
-	return pod.Spec.Containers[0].Name
+	return pod.Spec.Containers[0].Name, nil
 }
 
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
@@ -92,6 +104,11 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
+	targetContainer, err := chooseTargetContainer(pod)
+	if err != nil {
+		return nil, "", fmt.Errorf("choosing target container: %w", err)
+	}
+
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
@@ -99,7 +116,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 			Command: command,
 			Args:    args,
 		},
-		TargetContainerName: chooseTargetContainer(pod),
+		TargetContainerName: targetContainer,
 	}
 
 	debugPod := pod.DeepCopy()
@@ -115,7 +132,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 		return nil, ephemeralName, fmt.Errorf("error creating patch to add debug container: %v", err)
 	}
 
-	pods := k.Client.CoreV1().Pods(pod.Namespace)
+	pods := k.client.CoreV1().Pods(pod.Namespace)
 	result, err := pods.Patch(ctx, pod.Name, types.StrategicMergePatchType, patch, metav1.PatchOptions{}, "ephemeralcontainers")
 	if err != nil {
 		return nil, ephemeralName, fmt.Errorf("error patching pod with debug container: %v", err)
@@ -125,7 +142,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 }
 
 func (k *Kubernetes) getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
-	pod, err := k.Client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+	pod, err := k.client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		return -1, err
 	}
