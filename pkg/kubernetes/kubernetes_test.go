@@ -308,24 +308,64 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 		})
 	}
 
-	t.Run("error", func(t *testing.T) {
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "mimir-dev-013",
-				Name:      "ingester",
+	t.Run("errors", func(t *testing.T) {
+		t.Run("pod not found", func(t *testing.T) {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "mimir-dev-013",
+					Name:      "ingester",
+				},
+			}
+
+			k := &Kubernetes{
+				client: testClient.NewSimpleClientset(),
+			}
+
+			ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
+			if err == nil {
+				t.Fatal("expecting error, got nil")
+			}
+			if ok {
+				t.Errorf("expecting container terminated, got %t", ok)
+			}
+		})
+
+		for n, s := range map[string]corev1.ContainerState{
+			"waiting": {
+				Waiting: &corev1.ContainerStateWaiting{},
 			},
-		}
+			"running": {
+				Running: &corev1.ContainerStateRunning{},
+			},
+		} {
+			t.Run(n, func(t *testing.T) {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "mimir-dev-013",
+						Name:      "ingester",
+					},
+					Status: corev1.PodStatus{
+						EphemeralContainerStatuses: []corev1.ContainerStatus{
+							{
+								Name:  ephemeralContainerName,
+								State: s,
+							},
+						},
+					},
+				}
 
-		k := &Kubernetes{
-			client: testClient.NewSimpleClientset(),
-		}
+				k := &Kubernetes{
+					client: testClient.NewSimpleClientset(pod),
+				}
 
-		ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-		if err == nil {
-			t.Fatal("expecting error, got nil")
-		}
-		if ok {
-			t.Errorf("expecting container terminated, got %t", ok)
+				ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if ok {
+					t.Errorf("expecting container terminated to be false")
+				}
+			})
 		}
 	})
 }
