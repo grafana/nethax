@@ -329,3 +329,41 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 		}
 	})
 }
+
+func TestChooseTargetContainer(t *testing.T) {
+	tests := map[string]struct {
+		containers []corev1.Container
+		exp        string
+		err        error
+	}{
+		"no containers": {[]corev1.Container{}, "", errNoContainersInPod},
+		"one container": {[]corev1.Container{{Name: "web-0"}}, "web-0", nil},
+		"manty containers": {
+			[]corev1.Container{
+				{Name: "foo-0"},
+				{Name: "bar-1"},
+				{Name: "quux-0"},
+			},
+			"foo-0",
+			nil,
+		},
+	}
+
+	for n, tt := range tests {
+		t.Run(n, func(t *testing.T) {
+			pod := &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: tt.containers,
+				},
+			}
+
+			got, err := chooseTargetContainer(pod)
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("expecting error %v, got %v", tt.err, err)
+			}
+			if got != tt.exp {
+				t.Errorf("expecting container name %s, got %s", tt.exp, got)
+			}
+		})
+	}
+}
