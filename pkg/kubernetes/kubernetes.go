@@ -89,6 +89,9 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([
 	return pods.Items, nil
 }
 
+// chooseTargetContainer returns the container name if found, or the
+// first container name if no name is specified, erroring when no
+// containers are found with that name or if the list is empty.
 func chooseTargetContainer(pod *corev1.Pod, name string) (string, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return "", errNoContainersInPod
