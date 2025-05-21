@@ -333,19 +333,41 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 func TestChooseTargetContainer(t *testing.T) {
 	tests := map[string]struct {
 		containers []corev1.Container
+		name       string
 		exp        string
 		err        error
 	}{
-		"no containers": {[]corev1.Container{}, "", errNoContainersInPod},
-		"one container": {[]corev1.Container{{Name: "web-0"}}, "web-0", nil},
-		"manty containers": {
+		"no containers": {[]corev1.Container{}, "", "", errNoContainersInPod},
+		"one container": {[]corev1.Container{{Name: "web-0"}}, "web-0", "web-0", nil},
+		"first container": {
 			[]corev1.Container{
 				{Name: "foo-0"},
 				{Name: "bar-1"},
 				{Name: "quux-0"},
 			},
 			"foo-0",
+			"foo-0",
 			nil,
+		},
+		"by name": {
+			[]corev1.Container{
+				{Name: "foo-0"},
+				{Name: "bar-1"},
+				{Name: "quux-0"},
+			},
+			"bar-1",
+			"bar-1",
+			nil,
+		},
+		"container not found": {
+			[]corev1.Container{
+				{Name: "foo-0"},
+				{Name: "bar-1"},
+				{Name: "quux-0"},
+			},
+			"lorem-42",
+			"",
+			errContainerNotFound,
 		},
 	}
 
@@ -357,7 +379,7 @@ func TestChooseTargetContainer(t *testing.T) {
 				},
 			}
 
-			got, err := chooseTargetContainer(pod)
+			got, err := chooseTargetContainer(pod, tt.name)
 			if !errors.Is(err, tt.err) {
 				t.Fatalf("expecting error %v, got %v", tt.err, err)
 			}

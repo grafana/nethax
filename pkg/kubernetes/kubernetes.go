@@ -71,6 +71,7 @@ type Kubernetes struct {
 var (
 	errNoPodsFound       = errors.New("no pods found")
 	errNoContainersInPod = errors.New("no containers in pod")
+	errContainerNotFound = errors.New("container not found in pod")
 )
 
 func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
@@ -88,12 +89,21 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([
 	return pods.Items, nil
 }
 
-func chooseTargetContainer(pod *corev1.Pod) (string, error) {
-	// TODO add capability to pick container by name (currently assume 0th container)
+func chooseTargetContainer(pod *corev1.Pod, name string) (string, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return "", errNoContainersInPod
 	}
-	return pod.Spec.Containers[0].Name, nil
+	if name == "" {
+		return pod.Spec.Containers[0].Name, nil
+	}
+
+	for _, c := range pod.Spec.Containers {
+		if c.Name == name {
+			return c.Name, nil
+		}
+	}
+
+	return "", errContainerNotFound
 }
 
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
@@ -104,7 +114,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
-	targetContainer, err := chooseTargetContainer(pod)
+	targetContainer, err := chooseTargetContainer(pod, "")
 	if err != nil {
 		return nil, "", fmt.Errorf("choosing target container: %w", err)
 	}
