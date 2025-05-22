@@ -116,7 +116,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, []string{"nyaa"}, []string{"rawr"})
+	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, "grafana/nethax-probe", []string{"nyaa"}, []string{"rawr"})
 
 	// assert
 	if len(actual.Spec.EphemeralContainers) != 1 {
