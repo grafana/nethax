@@ -68,10 +68,7 @@ type Kubernetes struct {
 	client kubernetes.Interface
 }
 
-var (
-	errNoPodsFound       = errors.New("no pods found")
-	errNoContainersInPod = errors.New("no containers in pod")
-)
+var errNoPodsFound = errors.New("no pods found")
 
 func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
 	pods, err := k.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
@@ -86,14 +83,6 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([
 	}
 
 	return pods.Items, nil
-}
-
-func chooseTargetContainer(pod *corev1.Pod) (string, error) {
-	// TODO add capability to pick container by name (currently assume 0th container)
-	if len(pod.Spec.Containers) == 0 {
-		return "", errNoContainersInPod
-	}
-	return pod.Spec.Containers[0].Name, nil
 }
 
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
