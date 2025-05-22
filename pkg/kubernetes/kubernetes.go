@@ -104,11 +104,6 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
-	targetContainer, err := chooseTargetContainer(pod)
-	if err != nil {
-		return nil, "", fmt.Errorf("choosing target container: %w", err)
-	}
-
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
@@ -116,7 +111,6 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 			Command: command,
 			Args:    args,
 		},
-		TargetContainerName: targetContainer,
 	}
 
 	debugPod := pod.DeepCopy()
