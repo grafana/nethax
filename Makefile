@@ -27,6 +27,9 @@ CUR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DIR_RUNNER := "$(CUR_DIR)/cmd/runner"
 DIR_PROBE := "$(CUR_DIR)/cmd/probe"
 
+# Enable experimental testing/synctest package
+export GOEXPERIMENT=synctest
+
 build: build-runner build-probe
 
 build-runner: deps-runner
