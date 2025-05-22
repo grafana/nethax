@@ -47,8 +47,11 @@ KIND_CLUSTER_NAME ?= "nethax"
 deps:
 	go mod download
 
-.PHONY: docker docker-runner docker-probe
-docker: docker-runner docker-probe
+.PHONY: docker-build docker-push docker-runner docker-probe
+docker-build: docker-runner docker-probe
+
+docker-push:
+	@docker push nethax-runner:$(RUNNER_VERSION) nethax-runner:latest nethax-probe:$(PROBE_VERSION)  nethax-probe:latest
 
 docker-runner:
 	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) -t nethax-runner:latest .
@@ -81,7 +84,7 @@ kind-init-oteldemo:
 # Default test plan path if not overridden
 TEST_PLAN ?= "$(CUR_DIR)example/OtelDemoTestPlan.yaml"
 # Run the example test plan against KIND_CLUSTER_NAME
-run-example-test-plan: docker
+run-example-test-plan: docker-build
 	@echo "Running test plan: $(TEST_PLAN)"
 	@TMP_KUBECONFIG=$$(mktemp) && \
 	kind get kubeconfig --name $(KIND_CLUSTER_NAME) > $$TMP_KUBECONFIG && \
