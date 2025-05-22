@@ -408,71 +408,49 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 		}
 	})
 
-	t.Run("container running", func(t *testing.T) {
-		const ephemeralContainerName = "nethaxme"
-
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "mimir-dev-013",
-				Name:      "ingester",
+	t.Run("container not terminated", func(t *testing.T) {
+		states := map[string]corev1.ContainerState{
+			"running": {
+				Running: &corev1.ContainerStateRunning{
+					StartedAt: metav1.Now(),
+				},
 			},
-			Status: corev1.PodStatus{
-				EphemeralContainerStatuses: []corev1.ContainerStatus{
-					{
-						Name: ephemeralContainerName,
-						State: corev1.ContainerState{
-							Running: &corev1.ContainerStateRunning{
-								StartedAt: metav1.Now(),
+			"waiting": {
+				Waiting: &corev1.ContainerStateWaiting{},
+			},
+		}
+
+		for n, state := range states {
+			t.Run("state="+n, func(t *testing.T) {
+				const ephemeralContainerName = "nethaxme"
+
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "mimir-dev-013",
+						Name:      "ingester",
+					},
+					Status: corev1.PodStatus{
+						EphemeralContainerStatuses: []corev1.ContainerStatus{
+							{
+								Name:  ephemeralContainerName,
+								State: state,
 							},
 						},
 					},
-				},
-			},
-		}
+				}
 
-		k := &Kubernetes{
-			client: testClient.NewSimpleClientset(pod),
-		}
+				k := &Kubernetes{
+					client: testClient.NewSimpleClientset(pod),
+				}
 
-		code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
-		if err == nil {
-			t.Fatal("expecting error")
-		}
-		if code != -1 {
-			t.Fatalf("expecting -1 exit code, got %d", code)
-		}
-	})
-
-	t.Run("container waiting", func(t *testing.T) {
-		const ephemeralContainerName = "nethaxme"
-
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "mimir-dev-013",
-				Name:      "ingester",
-			},
-			Status: corev1.PodStatus{
-				EphemeralContainerStatuses: []corev1.ContainerStatus{
-					{
-						Name: ephemeralContainerName,
-						State: corev1.ContainerState{
-							Waiting: &corev1.ContainerStateWaiting{},
-						},
-					},
-				},
-			},
-		}
-
-		k := &Kubernetes{
-			client: testClient.NewSimpleClientset(pod),
-		}
-
-		code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
-		if err == nil {
-			t.Fatal("expecting error")
-		}
-		if code != -1 {
-			t.Fatalf("expecting -1 exit code, got %d", code)
+				code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+				if err == nil {
+					t.Fatal("expecting error")
+				}
+				if code != -1 {
+					t.Fatalf("expecting -1 exit code, got %d", code)
+				}
+			})
 		}
 	})
 }
