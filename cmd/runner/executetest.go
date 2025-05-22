@@ -120,7 +120,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				// Prepare the test command
 				command := []string{"/probe"}
 				arguments := []string{
-					pf.Flagify(pf.ArgUrl), test.Endpoint,
+					pf.Flagify(pf.ArgURL), test.Endpoint,
 					pf.Flagify(pf.ArgTimeout), test.Timeout.String(),
 					pf.Flagify(pf.ArgExpectedStatus), strconv.Itoa(test.StatusCode),
 				}

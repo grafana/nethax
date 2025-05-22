@@ -4,7 +4,7 @@ import "fmt"
 
 // Probe arguments -- can be Flagified
 const (
-	ArgUrl            = "url"
+	ArgURL            = "url"
 	ArgTimeout        = "timeout"
 	ArgExpectedStatus = "expected-status"
 	ArgExpectFail     = "expect-fail"

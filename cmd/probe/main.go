@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/grafana/nethax/pkg/common"
-	"github.com/grafana/nethax/pkg/probeflags"
 	pf "github.com/grafana/nethax/pkg/probeflags"
 )
 
@@ -20,7 +19,7 @@ var (
 )
 
 func main() {
-	flag.StringVar(&url, pf.ArgUrl, "", "URL or host:port to connect to")
+	flag.StringVar(&url, pf.ArgURL, "", "URL or host:port to connect to")
 	flag.DurationVar(&timeout, pf.ArgTimeout, 5*time.Second, "Timeout value (e.g. 5s, 1m)")
 	flag.IntVar(&expectedStatus, pf.ArgExpectedStatus, 200, "Expected HTTP status code (0 for connection failure)")
 	flag.StringVar(&testType, pf.ArgType, pf.TestTypeHTTP, "Type of test (http or tcp)")
@@ -35,9 +34,9 @@ func main() {
 	var probe Probe
 
 	switch testType {
-	case probeflags.TestTypeTCP:
+	case pf.TestTypeTCP:
 		probe = NewTCPProbe(url, expectFail)
-	case probeflags.TestTypeHTTP:
+	case pf.TestTypeHTTP:
 		probe = NewHTTPProbe(url, expectedStatus)
 	default:
 		fmt.Println("Error: Invalid test type: ", testType)
