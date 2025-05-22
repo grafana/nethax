@@ -398,7 +398,10 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 				client: testClient.NewSimpleClientset(pod),
 			}
 
-			got := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+			got, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if exitCode != got {
 				t.Fatalf("expecting container status %d, got %d", exitCode, got)
 			}
@@ -431,8 +434,13 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 			client: testClient.NewSimpleClientset(pod),
 		}
 
-		t.Skip("This one currently exits abruptly, it should return an error")
-		k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+		code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+		if err == nil {
+			t.Fatal("expecting error")
+		}
+		if code != -1 {
+			t.Fatalf("expecting -1 exit code, got %d", code)
+		}
 	})
 
 	t.Run("container waiting", func(t *testing.T) {
@@ -459,7 +467,12 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 			client: testClient.NewSimpleClientset(pod),
 		}
 
-		t.Skip("This one currently exits abruptly, it should return an error")
-		k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+		code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+		if err == nil {
+			t.Fatal("expecting error")
+		}
+		if code != -1 {
+			t.Fatalf("expecting -1 exit code, got %d", code)
+		}
 	})
 }

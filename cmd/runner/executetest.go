@@ -142,7 +142,13 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				}
 
 				// Wait for the test to complete and get the exit status
-				exitStatus := k.PollEphemeralContainerStatus(ctx, probedPod, probeContainerName)
+				exitStatus, err := k.PollEphemeralContainerStatus(ctx, probedPod, probeContainerName)
+				if err != nil {
+					indent(3, "Result: ERROR %v", err)
+					fmt.Println()
+					allTestsPassed = false
+					continue
+				}
 
 				// Check if the test passed based on the probe's exit status
 				if exitStatus == 0 {
