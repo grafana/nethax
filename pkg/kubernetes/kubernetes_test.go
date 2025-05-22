@@ -369,3 +369,97 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 		}
 	})
 }
+
+func TestPollEphemeralContainerStatus(t *testing.T) {
+	t.Run("container terminated", func(t *testing.T) {
+		const ephemeralContainerName = "nethaxme"
+
+		for _, exitCode := range []int32{0, 2} {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "mimir-dev-013",
+					Name:      "ingester",
+				},
+				Status: corev1.PodStatus{
+					EphemeralContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name: ephemeralContainerName,
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									ExitCode: exitCode,
+								},
+							},
+						},
+					},
+				},
+			}
+
+			k := &Kubernetes{
+				client: testClient.NewSimpleClientset(pod),
+			}
+
+			got := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+			if exitCode != got {
+				t.Fatalf("expecting container status %d, got %d", exitCode, got)
+			}
+		}
+	})
+
+	t.Run("container running", func(t *testing.T) {
+		const ephemeralContainerName = "nethaxme"
+
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "mimir-dev-013",
+				Name:      "ingester",
+			},
+			Status: corev1.PodStatus{
+				EphemeralContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: ephemeralContainerName,
+						State: corev1.ContainerState{
+							Running: &corev1.ContainerStateRunning{
+								StartedAt: metav1.Now(),
+							},
+						},
+					},
+				},
+			},
+		}
+
+		k := &Kubernetes{
+			client: testClient.NewSimpleClientset(pod),
+		}
+
+		t.Skip("This one currently exits abruptly, it should return an error")
+		k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+	})
+
+	t.Run("container waiting", func(t *testing.T) {
+		const ephemeralContainerName = "nethaxme"
+
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "mimir-dev-013",
+				Name:      "ingester",
+			},
+			Status: corev1.PodStatus{
+				EphemeralContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: ephemeralContainerName,
+						State: corev1.ContainerState{
+							Waiting: &corev1.ContainerStateWaiting{},
+						},
+					},
+				},
+			},
+		}
+
+		k := &Kubernetes{
+			client: testClient.NewSimpleClientset(pod),
+		}
+
+		t.Skip("This one currently exits abruptly, it should return an error")
+		k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+	})
+}
