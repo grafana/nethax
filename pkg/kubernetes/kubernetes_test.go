@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"testing/synctest"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -422,34 +423,36 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 
 		for n, state := range states {
 			t.Run("state="+n, func(t *testing.T) {
-				const ephemeralContainerName = "nethaxme"
+				synctest.Run(func() {
+					const ephemeralContainerName = "nethaxme"
 
-				pod := &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "mimir-dev-013",
-						Name:      "ingester",
-					},
-					Status: corev1.PodStatus{
-						EphemeralContainerStatuses: []corev1.ContainerStatus{
-							{
-								Name:  ephemeralContainerName,
-								State: state,
+					pod := &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "mimir-dev-013",
+							Name:      "ingester",
+						},
+						Status: corev1.PodStatus{
+							EphemeralContainerStatuses: []corev1.ContainerStatus{
+								{
+									Name:  ephemeralContainerName,
+									State: state,
+								},
 							},
 						},
-					},
-				}
+					}
 
-				k := &Kubernetes{
-					client: testClient.NewSimpleClientset(pod),
-				}
+					k := &Kubernetes{
+						client: testClient.NewSimpleClientset(pod),
+					}
 
-				code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
-				if err == nil {
-					t.Fatal("expecting error")
-				}
-				if code != -1 {
-					t.Fatalf("expecting -1 exit code, got %d", code)
-				}
+					code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+					if err == nil {
+						t.Fatal("expecting error")
+					}
+					if code != -1 {
+						t.Fatalf("expecting -1 exit code, got %d", code)
+					}
+				})
 			})
 		}
 	})
