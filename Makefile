@@ -2,7 +2,7 @@ CI := $(CI)
 
 ifndef CI
 # Check we've got the necessary tools installed...
-EXECUTABLES = go docker kind kubectl
+EXECUTABLES := git go docker kind kubectl
 K := $(foreach exec,$(EXECUTABLES),\
         $(if $(shell which $(exec)), not found , $(error "No $(exec) in PATH")))
 endif
@@ -15,8 +15,12 @@ ifdef CI
 	RUNNER_VERSION := $(RUNNER_SEMVER)
 	PROBE_VERSION := $(PROBE_SEMVER)
 else
-	RUNNER_VERSION := "$(RUNNER_SEMVER)-$(shell date +%s)"
-	PROBE_VERSION := "$(PROBE_SEMVER)-$(shell date +%s)"
+	COMMIT_SHA := $(shell git rev-parse HEAD)
+	WORKING_TREE_SHA := $(shell git ls-files -m -o --exclude-standard \
+		| while read -r file; do stat -c '%n %a' $${file}; done \
+		| sha1sum | tr -s ' ' | tr -d ' -')
+	RUNNER_VERSION := "$(RUNNER_SEMVER)-$(COMMIT_SHA)-$(WORKING_TREE_SHA)"
+	PROBE_VERSION := "$(PROBE_SEMVER)-$(COMMIT_SHA)-$(WORKING_TREE_SHA)"
 endif
 
 CUR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -43,17 +47,20 @@ KIND_CLUSTER_NAME ?= "nethax"
 deps:
 	go mod download
 
-.PHONY: docker docker-runner docker-probe
-docker: docker-runner docker-probe
+.PHONY: docker-build docker-push docker-runner docker-probe
+docker-build: docker-runner docker-probe
+
+docker-push:
+	@docker push nethax-runner:$(RUNNER_VERSION) nethax-runner:latest nethax-probe:$(PROBE_VERSION)  nethax-probe:latest
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) .
+	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) -t nethax-runner:latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-runner:$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION)  -t nethax-probe:latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
 endif
@@ -77,7 +84,7 @@ kind-init-oteldemo:
 # Default test plan path if not overridden
 TEST_PLAN ?= "$(CUR_DIR)example/OtelDemoTestPlan.yaml"
 # Run the example test plan against KIND_CLUSTER_NAME
-run-example-test-plan: docker
+run-example-test-plan: docker-build
 	@echo "Running test plan: $(TEST_PLAN)"
 	@TMP_KUBECONFIG=$$(mktemp) && \
 	kind get kubeconfig --name $(KIND_CLUSTER_NAME) > $$TMP_KUBECONFIG && \

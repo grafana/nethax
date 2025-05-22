@@ -2,21 +2,12 @@ name: Build and Push Image
 
 on:
   push:
-    branches:
-      - main
     tags:
       - v*
 
 permissions:
   contents: read
   id-token: write
-
-env:
-  REGISTRY_IMAGE: grafana/nethax
-  TAGS_CONFIG: |
-    type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-    type=sha,prefix={{ branch }}-,format=short,enable=${{ github.ref == 'refs/heads/main' }}
-    type=semver,pattern={{ version }}
 
 jobs:
   docker:
@@ -26,21 +17,7 @@ jobs:
         with:
           persist-credentials: false
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Build and push - Probe
-        uses: grafana/shared-workflows/actions/build-push-to-dockerhub@402975d84dd3fac9ba690f994f412d0ee2f51cf4 # build-push-to-dockerhub-v0.1.1
-        with:
-          repository: ${{ env.REGISTRY_IMAGE }}
-          context: .
-          push: true
-          file: Dockerfile-probe
-          platforms: linux/amd64
-          tags: ${{ env.TAGS_CONFIG }}
-      - name: Build and push - Runner
-        uses: grafana/shared-workflows/actions/build-push-to-dockerhub@402975d84dd3fac9ba690f994f412d0ee2f51cf4 # build-push-to-dockerhub-v0.1.1
-        with:
-          repository: ${{ env.REGISTRY_IMAGE }}
-          context: .
-          push: true
-          file: Dockerfile-runner
-          platforms: linux/amd64
-          tags: ${{ env.TAGS_CONFIG }}
+      - name: Dockerhub Login
+        uses: grafana/shared-workflows/actions/dockerhub-login@49c90b10fcbce463983bed45932cf468b8bd06ce # dockerhub-login latest
+      - name: Build and push
+        run: make docker-build docker-push
