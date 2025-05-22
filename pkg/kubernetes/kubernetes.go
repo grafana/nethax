@@ -69,8 +69,7 @@ type Kubernetes struct {
 }
 
 var (
-	errNoPodsFound       = errors.New("no pods found")
-	errNoContainersInPod = errors.New("no containers in pod")
+	errNoPodsFound = errors.New("no pods found")
 )
 
 func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
@@ -88,14 +87,6 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([
 	return pods.Items, nil
 }
 
-func chooseTargetContainer(pod *corev1.Pod) (string, error) {
-	// TODO add capability to pick container by name (currently assume 0th container)
-	if len(pod.Spec.Containers) == 0 {
-		return "", errNoContainersInPod
-	}
-	return pod.Spec.Containers[0].Name, nil
-}
-
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
@@ -104,11 +95,6 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
-	targetContainer, err := chooseTargetContainer(pod)
-	if err != nil {
-		return nil, "", fmt.Errorf("choosing target container: %w", err)
-	}
-
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
@@ -116,7 +102,6 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 			Command: command,
 			Args:    args,
 		},
-		TargetContainerName: targetContainer,
 	}
 
 	debugPod := pod.DeepCopy()
