@@ -14,11 +14,24 @@ func TestTCPProbe(t *testing.T) {
 			t.Fatalf("unexpected error creating listener: %v", err)
 		}
 
-		p := NewTCPProbe(l.Addr().String(), false)
+		t.Run("should connect", func(t *testing.T) {
+			p := NewTCPProbe(l.Addr().String(), false)
 
-		if err := p.Run(t.Context()); err != nil {
-			t.Fatal(err)
-		}
+			if err := p.Run(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("should not connect", func(t *testing.T) {
+			if err := l.Close(); err != nil {
+				t.Fatalf("unexpected error closing listener: %v", err)
+			}
+			p := NewTCPProbe(l.Addr().String(), true)
+
+			if err := p.Run(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("conn should fail", func(t *testing.T) {
