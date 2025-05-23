@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/nethax/pkg/common"
 	"github.com/grafana/nethax/pkg/kubernetes"
 	pf "github.com/grafana/nethax/pkg/probeflags"
 	"github.com/spf13/cobra"
@@ -28,30 +27,30 @@ func ExecuteTest() *cobra.Command {
 			if testFile == "" {
 				cmd.Println("Error: test file must be specified")
 				cmd.Help() //nolint:errcheck
-				common.ExitConfigError()
+				os.Exit(exitCodeConfigError)
 			}
 
 			file, err := os.Open(testFile)
 			if err != nil {
 				cmd.Printf("Error opening test file: %v\n", err)
-				common.ExitConfigError()
+				os.Exit(exitCodeConfigError)
 			}
 			defer file.Close() //nolint:errcheck
 
 			plan, err := ParseTestPlan(file)
 			if err != nil {
 				cmd.Printf("Error parsing test plan: %v\n", err)
-				common.ExitConfigError()
+				os.Exit(exitCodeConfigError)
 			}
 
 			k, err := kubernetes.New("")
 			if err != nil {
 				cmd.Printf("Error creating Kubernetes client: %v\n", err)
-				common.ExitConfigError()
+				os.Exit(exitCodeConfigError)
 			}
 
 			if !executeTest(cmd.Context(), k, plan) {
-				common.ExitFailure()
+				os.Exit(exitCodeFailure)
 			}
 		},
 	}
