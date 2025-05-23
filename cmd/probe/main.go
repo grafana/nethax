@@ -4,10 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
-	"github.com/grafana/nethax/pkg/common"
 	pf "github.com/grafana/nethax/pkg/probeflags"
+)
+
+const (
+	exitCodeSuccess     = 0
+	exitCodeFailure     = 1
+	exitCodeConfigError = 2
 )
 
 var (
@@ -28,7 +34,7 @@ func main() {
 
 	if url == "" {
 		fmt.Println("Error: URL must be specified")
-		common.ExitConfigError()
+		os.Exit(exitCodeFailure)
 	}
 
 	var probe Probe
@@ -40,7 +46,7 @@ func main() {
 		probe = NewHTTPProbe(url, expectedStatus)
 	default:
 		fmt.Println("Error: Invalid test type: ", testType)
-		common.ExitConfigError()
+		os.Exit(exitCodeConfigError)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -48,9 +54,9 @@ func main() {
 
 	if err := probe.Run(ctx); err != nil {
 		fmt.Println("Probe failed unexpectedly:", err)
-		common.ExitFailure()
+		os.Exit(exitCodeFailure)
 	}
 
 	fmt.Println("Probe succeeded")
-	common.ExitSuccess()
+	os.Exit(exitCodeSuccess)
 }
