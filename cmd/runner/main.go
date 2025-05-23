@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	exitCodeSuccess     = 0
 	exitCodeFailure     = 1
 	exitCodeConfigError = 2
-	exitCodeNethaxError = 3
 )
 
 func main() {
