@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"testing/synctest"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -308,24 +309,151 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 		})
 	}
 
-	t.Run("error", func(t *testing.T) {
-		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "mimir-dev-013",
-				Name:      "ingester",
+	t.Run("errors", func(t *testing.T) {
+		t.Run("pod not found", func(t *testing.T) {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "mimir-dev-013",
+					Name:      "ingester",
+				},
+			}
+
+			k := &Kubernetes{
+				client: testClient.NewSimpleClientset(),
+			}
+
+			ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
+			if err == nil {
+				t.Fatal("expecting error, got nil")
+			}
+			if ok {
+				t.Errorf("expecting container terminated, got %t", ok)
+			}
+		})
+
+		for n, s := range map[string]corev1.ContainerState{
+			"waiting": {
+				Waiting: &corev1.ContainerStateWaiting{},
+			},
+			"running": {
+				Running: &corev1.ContainerStateRunning{},
+			},
+		} {
+			t.Run(n, func(t *testing.T) {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "mimir-dev-013",
+						Name:      "ingester",
+					},
+					Status: corev1.PodStatus{
+						EphemeralContainerStatuses: []corev1.ContainerStatus{
+							{
+								Name:  ephemeralContainerName,
+								State: s,
+							},
+						},
+					},
+				}
+
+				k := &Kubernetes{
+					client: testClient.NewSimpleClientset(pod),
+				}
+
+				ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if ok {
+					t.Errorf("expecting container terminated to be false")
+				}
+			})
+		}
+	})
+}
+
+func TestPollEphemeralContainerStatus(t *testing.T) {
+	t.Run("container terminated", func(t *testing.T) {
+		const ephemeralContainerName = "nethaxme"
+
+		for _, exitCode := range []int32{0, 2} {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "mimir-dev-013",
+					Name:      "ingester",
+				},
+				Status: corev1.PodStatus{
+					EphemeralContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name: ephemeralContainerName,
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									ExitCode: exitCode,
+								},
+							},
+						},
+					},
+				},
+			}
+
+			k := &Kubernetes{
+				client: testClient.NewSimpleClientset(pod),
+			}
+
+			got, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if exitCode != got {
+				t.Fatalf("expecting container status %d, got %d", exitCode, got)
+			}
+		}
+	})
+
+	t.Run("container not terminated", func(t *testing.T) {
+		states := map[string]corev1.ContainerState{
+			"running": {
+				Running: &corev1.ContainerStateRunning{
+					StartedAt: metav1.Now(),
+				},
+			},
+			"waiting": {
+				Waiting: &corev1.ContainerStateWaiting{},
 			},
 		}
 
-		k := &Kubernetes{
-			client: testClient.NewSimpleClientset(),
-		}
+		for n, state := range states {
+			t.Run("state="+n, func(t *testing.T) {
+				synctest.Run(func() {
+					const ephemeralContainerName = "nethaxme"
 
-		ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-		if err == nil {
-			t.Fatal("expecting error, got nil")
-		}
-		if ok {
-			t.Errorf("expecting container terminated, got %t", ok)
+					pod := &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "mimir-dev-013",
+							Name:      "ingester",
+						},
+						Status: corev1.PodStatus{
+							EphemeralContainerStatuses: []corev1.ContainerStatus{
+								{
+									Name:  ephemeralContainerName,
+									State: state,
+								},
+							},
+						},
+					}
+
+					k := &Kubernetes{
+						client: testClient.NewSimpleClientset(pod),
+					}
+
+					code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+					if err == nil {
+						t.Fatal("expecting error")
+					}
+					if code != -1 {
+						t.Fatalf("expecting -1 exit code, got %d", code)
+					}
+				})
+			})
 		}
 	})
 }
