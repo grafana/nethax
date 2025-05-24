@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -15,8 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/grafana/nethax/pkg/common"
 )
 
 var (
@@ -161,18 +160,20 @@ func (k *Kubernetes) waitForEphemeralContainerTerminated(ctx context.Context, po
 	return wait.PollUntilContextTimeout(ctx, time.Second, timeout, false, k.isEphemeralContainerTerminated(pod, ephemeralContainerName))
 }
 
+const ExitCodeNethaxError = 3
+
 func (k *Kubernetes) PollEphemeralContainerStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) int32 {
 	// poll until ephemeral container has an exit status
 	err := k.waitForEphemeralContainerTerminated(ctx, pod, ephemeralContainerName, time.Second*30)
 	if err != nil {
 		fmt.Println("Error waiting for ephemeral container start.", err)
-		common.ExitNethaxError()
+		os.Exit(ExitCodeNethaxError)
 	}
 	// return exit status
 	exitCode, err := k.getEphemeralContainerExitStatus(ctx, pod, ephemeralContainerName)
 	if err != nil {
 		fmt.Println("Error getting ephemeral container exit code.", err)
-		common.ExitNethaxError()
+		os.Exit(ExitCodeNethaxError)
 	}
 
 	return exitCode

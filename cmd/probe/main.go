@@ -4,9 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"time"
+)
 
-	"github.com/grafana/nethax/pkg/common"
+const (
+	exitCodeSuccess = 0
+	exitCodeFailure = 1
 )
 
 var (
@@ -27,7 +31,7 @@ func main() {
 
 	if url == "" {
 		fmt.Println("Error: URL must be specified")
-		common.ExitFailure()
+		os.Exit(exitCodeFailure)
 	}
 
 	var probe Probe
@@ -43,9 +47,9 @@ func main() {
 
 	if err := probe.Run(ctx); err != nil {
 		fmt.Println("Probe failed unexpectedly:", err)
-		common.ExitFailure()
+		os.Exit(exitCodeFailure)
 	}
 
 	fmt.Println("Probe succeeded")
-	common.ExitSuccess()
+	os.Exit(exitCodeSuccess)
 }
