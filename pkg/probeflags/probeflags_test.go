@@ -15,7 +15,7 @@ func TestFlagify(t *testing.T) {
 	flag.Parse()
 
 	if !test {
-		t.Errorf("Expected --test to be set, go these args: %v", os.Args)
+		t.Errorf("Expected --test to be set, got these args: %v", os.Args)
 	}
 
 }
