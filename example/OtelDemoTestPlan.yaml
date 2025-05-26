@@ -3,8 +3,8 @@ testPlan:
   description: "Test plan for the opentelemetry demo application: https://github.com/open-telemetry/opentelemetry-demo"
   testTargets:
   - name: "basic connectivity tests"
-    podSelector: "app.kubernetes.io/instance=opentelemetry-demo"
-    podSelection:
+    podSelector:
+      labels: "app.kubernetes.io/instance=opentelemetry-demo"
       mode: "random"  # options: "all", "random"
     tests:
     - name: "Check internet access"
@@ -16,9 +16,9 @@ testPlan:
       statusCode: 200
       timeout: 3s
   - name: "coredns connectivity tests"
-    podSelector: "k8s-app=kube-dns"
     namespace: kube-system
-    podSelection:
+    podSelector:
+      labels: "k8s-app=kube-dns"
       mode: "all"  # will test all pods matching the selector and namespace
     tests:
     - name: "Ensure fake service call fails"
