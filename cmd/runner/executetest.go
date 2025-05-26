@@ -171,7 +171,7 @@ func isPodReady(pod *corev1.Pod) bool {
 }
 
 func findPods(ctx context.Context, k *kubernetes.Kubernetes, namespace string, selector PodSelector) ([]corev1.Pod, error) {
-	pods, err := k.GetPods(ctx, namespace, selector.Labels)
+	pods, err := k.GetPods(ctx, namespace, selector.Labels, selector.Fields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find pods: %w", err)
 	}

@@ -72,16 +72,17 @@ var (
 	errNoPodsFound = errors.New("no pods found")
 )
 
-func (k *Kubernetes) GetPods(ctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
+func (k *Kubernetes) GetPods(ctx context.Context, namespace, labels, fields string) ([]corev1.Pod, error) {
 	pods, err := k.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: selector,
+		LabelSelector: labels,
+		FieldSelector: fields,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("listing pods for namespace %s and selector %q: %w", namespace, selector, err)
+		return nil, fmt.Errorf("listing pods for namespace %s, labels %q, and fields %q: %w", namespace, labels, fields, err)
 	}
 
 	if len(pods.Items) == 0 {
-		return nil, fmt.Errorf("%w: namespace %s, selector %q", errNoPodsFound, namespace, selector)
+		return nil, fmt.Errorf("%w: namespace %s, labels %q, fields %q", errNoPodsFound, namespace, labels, fields)
 	}
 
 	return pods.Items, nil

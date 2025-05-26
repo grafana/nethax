@@ -21,6 +21,7 @@ type Test struct {
 type PodSelector struct {
 	Mode   string `yaml:"mode"` // "all" or "random"
 	Labels string `yaml:"labels"`
+	Fields string `yaml:"fields"`
 }
 
 // TestTarget represents a pod target with multiple tests

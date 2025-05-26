@@ -71,7 +71,7 @@ func TestGetPods(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(fmt.Sprintf("ns=%s,sel=%s", tt.ns, tt.labels), func(t *testing.T) {
-				pods, err := k.GetPods(t.Context(), tt.ns, tt.labels)
+				pods, err := k.GetPods(t.Context(), tt.ns, tt.labels, "")
 				if !errors.Is(err, errNoPodsFound) {
 					t.Fatalf("expecting error %v, got %v", errNoPodsFound, err)
 				}
@@ -94,13 +94,13 @@ func TestGetPods(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			pods, err := k.GetPods(t.Context(), tt.ns, tt.labels)
+			pods, err := k.GetPods(t.Context(), tt.ns, tt.labels, "")
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
 			if got := len(pods); tt.exp != got {
-				t.Fatalf("expecting %d pods, got %d", tt.exp, got)
+				t.Fatalf("ns %q, labels %q: expecting %d pods, got %d", tt.ns, tt.labels, tt.exp, got)
 			}
 		}
 	})
