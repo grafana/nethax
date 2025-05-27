@@ -17,18 +17,19 @@ type Test struct {
 	Timeout    time.Duration `yaml:"timeout"`
 }
 
-// PodSelection represents how pods should be selected for testing
-type PodSelection struct {
-	Mode string `yaml:"mode"` // "all" or "random"
+// PodSelector represents how pods should be selected for testing
+type PodSelector struct {
+	Mode   string `yaml:"mode"` // "all" or "random"
+	Labels string `yaml:"labels"`
+	Fields string `yaml:"fields"`
 }
 
 // TestTarget represents a pod target with multiple tests
 type TestTarget struct {
-	Name         string       `yaml:"name"`
-	PodSelector  string       `yaml:"podSelector"`
-	Namespace    string       `yaml:"namespace,omitempty"`
-	PodSelection PodSelection `yaml:"podSelection"`
-	Tests        []Test       `yaml:"tests"`
+	Name        string      `yaml:"name"`
+	Namespace   string      `yaml:"namespace,omitempty"`
+	PodSelector PodSelector `yaml:"podSelector"`
+	Tests       []Test      `yaml:"tests"`
 }
 
 // TestPlan represents a collection of test targets with metadata

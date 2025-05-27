@@ -16,10 +16,10 @@ testPlan:
       statusCode: 200
       timeout: 3s
   - name: "coredns connectivity tests"
-    namespace: kube-system
     podSelector:
       labels: "k8s-app=kube-dns"
       mode: "all"  # will test all pods matching the selector and namespace
+    namespace: kube-system
     tests:
     - name: "Ensure fake service call fails"
       endpoint: "http://fake-service.fake.svc.cluster.local/fake/healthz"

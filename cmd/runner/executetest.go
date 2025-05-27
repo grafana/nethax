@@ -81,9 +81,9 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 		if target.Namespace != "" {
 			indent(1, "Namespace: %s", target.Namespace)
 		}
-		indent(1, "Selection Mode: %s", target.PodSelection.Mode)
+		indent(1, "Selection Mode: %s", target.PodSelector.Mode)
 
-		selectedPods, err := findPods(ctx, k, target.PodSelection.Mode, target.Namespace, target.PodSelector)
+		selectedPods, err := findPods(ctx, k, target.Namespace, target.PodSelector)
 		if err != nil {
 			indent(1, "Error: %v", err)
 			fmt.Println()
@@ -176,13 +176,13 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func findPods(ctx context.Context, k *kubernetes.Kubernetes, mode, namespace, selector string) ([]corev1.Pod, error) {
-	pods, err := k.GetPods(ctx, namespace, selector)
+func findPods(ctx context.Context, k *kubernetes.Kubernetes, namespace string, selector PodSelector) ([]corev1.Pod, error) {
+	pods, err := k.GetPods(ctx, namespace, selector.Labels, selector.Fields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find pods: %w", err)
 	}
 
-	return selectPods(mode, pods)
+	return selectPods(selector.Mode, pods)
 }
 
 var (

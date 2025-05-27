@@ -50,6 +50,7 @@ func TestGetPods(t *testing.T) {
 					Name:      "example-pod-002",
 					Labels: map[string]string{
 						"app": "nethax",
+						"foo": "bar",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -61,7 +62,7 @@ func TestGetPods(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		tests := []struct {
-			ns, sel string
+			ns, labels string
 		}{
 			{corev1.NamespaceAll, "app=redis"},
 			{"nethax", "app=postgresql"},
@@ -70,8 +71,8 @@ func TestGetPods(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			t.Run(fmt.Sprintf("ns=%s,sel=%s", tt.ns, tt.sel), func(t *testing.T) {
-				pods, err := k.GetPods(t.Context(), tt.ns, tt.sel)
+			t.Run(fmt.Sprintf("ns=%s,sel=%s", tt.ns, tt.labels), func(t *testing.T) {
+				pods, err := k.GetPods(t.Context(), tt.ns, tt.labels, "")
 				if !errors.Is(err, errNoPodsFound) {
 					t.Fatalf("expecting error %v, got %v", errNoPodsFound, err)
 				}
@@ -84,13 +85,24 @@ func TestGetPods(t *testing.T) {
 	})
 
 	t.Run("found", func(t *testing.T) {
-		pods, err := k.GetPods(t.Context(), "nethax", "app=nethax")
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+		tests := []struct {
+			ns, labels string
+			exp        int
+		}{
+			{corev1.NamespaceAll, "", 3},
+			{"nethax", "", 2},
+			{"nethax", "foo=bar", 1},
 		}
 
-		if len(pods) == 0 {
-			t.Fatal("expecting pods, none found")
+		for _, tt := range tests {
+			pods, err := k.GetPods(t.Context(), tt.ns, tt.labels, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got := len(pods); tt.exp != got {
+				t.Fatalf("ns %q, labels %q: expecting %d pods, got %d", tt.ns, tt.labels, tt.exp, got)
+			}
 		}
 	})
 }
