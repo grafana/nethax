@@ -66,7 +66,7 @@ ifndef CI
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION)  -t nethax-probe:latest .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) -t nethax-probe:latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
 endif
