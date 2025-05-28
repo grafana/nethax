@@ -54,7 +54,10 @@ deps:
 docker-build: docker-runner docker-probe
 
 docker-push:
-	@docker push nethax-runner:$(RUNNER_VERSION) nethax-runner:latest nethax-probe:$(PROBE_VERSION)  nethax-probe:latest
+	@docker push nethax-runner:$(RUNNER_VERSION)
+	@docker push nethax-runner:latest
+	@docker push nethax-probe:$(PROBE_VERSION)
+	@docker push nethax-probe:latest
 
 docker-runner:
 	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) -t nethax-runner:latest .
@@ -63,7 +66,7 @@ ifndef CI
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION)  -t nethax-probe:latest .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) -t nethax-probe:latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
 endif
