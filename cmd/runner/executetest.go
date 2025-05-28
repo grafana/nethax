@@ -80,7 +80,6 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 		if target.Namespace != "" {
 			indent(1, "Namespace: %s", target.Namespace)
 		}
-		indent(1, "Selection Mode: %s", target.PodSelector.Mode)
 
 		selectedPods, err := findPods(ctx, k, target.Namespace, target.PodSelector)
 		if err != nil {

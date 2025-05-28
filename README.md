@@ -45,8 +45,7 @@ Executing test plan: Otel Demo Test Plan
 Description: Test plan for the opentelemetry demo application: https://github.com/open-telemetry/opentelemetry-demo
 
 Executing tests for target: basic connectivity tests
-  Pod Selector: app.kubernetes.io/instance=opentelemetry-demo
-  Pod Selection Mode: random
+  Pod Selector: mode: random, labels: app.kubernetes.io/instance=opentelemetry-demo
   Selected 1 ready pod(s) for testing
   Testing pod: otel-demo/frontend-6769b58884-vw62t
     Executing test: Check internet access
@@ -66,9 +65,8 @@ Executing tests for target: basic connectivity tests
       Result: PASSED
 
 Executing tests for target: coredns connectivity tests
-  Pod Selector: k8s-app=kube-dns
+  Pod Selector: mode: all, labels: k8s-app=kube-dns
   Namespace: kube-system
-  Pod Selection Mode: all
   Selected 2 ready pod(s) for testing
   Testing pod: kube-system/coredns-7c65d6cfc9-dbrv8
     Executing test: Ensure fake service call fails

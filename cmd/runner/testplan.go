@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"strings"
 	"time"
 
 	"github.com/goccy/go-yaml"
@@ -22,6 +23,23 @@ type PodSelector struct {
 	Mode   string `yaml:"mode"` // "all" or "random"
 	Labels string `yaml:"labels"`
 	Fields string `yaml:"fields"`
+}
+
+func (s PodSelector) String() string {
+	var b strings.Builder
+	b.WriteString("mode: ")
+	b.WriteString(s.Mode)
+
+	if s.Labels != "" {
+		b.WriteString(", labels: ")
+		b.WriteString(s.Labels)
+	}
+	if s.Fields != "" {
+		b.WriteString(", fields: ")
+		b.WriteString(s.Fields)
+	}
+
+	return b.String()
 }
 
 // TestTarget represents a pod target with multiple tests
