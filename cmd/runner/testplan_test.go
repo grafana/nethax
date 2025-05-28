@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -38,4 +39,29 @@ func TestParseTestPlan(t *testing.T) {
 			t.Fatalf("expecting type to be %q, got %q", e, g)
 		}
 	})
+}
+
+func TestPodSelector_String(t *testing.T) {
+	tests := []struct {
+		sel PodSelector
+		exp string
+	}{
+		{PodSelector{Mode: "all"}, "mode: all"},
+		{PodSelector{Mode: "random"}, "mode: random"},
+
+		{PodSelector{Mode: "all", Labels: "app=nethax"}, "mode: all, labels: app=nethax"},
+		{PodSelector{Mode: "all", Fields: "spec.nodeName=foo-bar-42"}, "mode: all, fields: spec.nodeName=foo-bar-42"},
+		{PodSelector{Mode: "all", Labels: "app=nethax", Fields: "spec.nodeName=foo-bar-42"}, "mode: all, labels: app=nethax, fields: spec.nodeName=foo-bar-42"},
+
+		{PodSelector{Mode: "random", Labels: "app=grafana"}, "mode: random, labels: app=grafana"},
+		{PodSelector{Mode: "random", Fields: "spec.nodeName=foo-bar-23"}, "mode: random, fields: spec.nodeName=foo-bar-23"},
+		{PodSelector{Mode: "random", Labels: "app=grafana", Fields: "spec.nodeName=foo-bar-23"}, "mode: random, labels: app=grafana, fields: spec.nodeName=foo-bar-23"},
+	}
+
+	for _, tt := range tests {
+		// using fmt.Sprint here so we know it uses Stringer
+		if got := fmt.Sprint(tt.sel); tt.exp != got {
+			t.Errorf("for %#v expecting %q, got %q", tt.sel, tt.exp, got)
+		}
+	}
 }
