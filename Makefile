@@ -54,10 +54,10 @@ deps:
 docker-build: docker-runner docker-probe
 
 docker-push:
-	@docker push nethax-runner:$(RUNNER_VERSION)
-	@docker push nethax-runner:latest
-	@docker push nethax-probe:$(PROBE_VERSION)
-	@docker push nethax-probe:latest
+	@docker push grafana/nethax-runner:$(RUNNER_VERSION)
+	@docker push grafana/nethax-runner:latest
+	@docker push grafana/nethax-probe:$(PROBE_VERSION)
+	@docker push grafana/nethax-probe:latest
 
 docker-runner:
 	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) -t nethax-runner:latest .
