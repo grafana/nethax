@@ -22,3 +22,11 @@ Once you've installed the OpenTelemetry Demo, you can execute the example test p
 ```
 make run-example-test-plan
 ```
+# Dependencies
+Renovate is used for dependency management.
+
+Some non-default things we do with Renovate:
+- Run `god mod tidy` after updating Go modules
+- Automerge is enabled -- PRs must be approved by a CODEOWNER and pass checks to be merged
+
+See the Renovate config for the latest config. :)
