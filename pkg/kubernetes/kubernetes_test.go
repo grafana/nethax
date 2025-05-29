@@ -141,6 +141,33 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.client.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{})
 }
 
+func TestSetProbeImage(t *testing.T) {
+	tests := []struct {
+		name  string
+		image string
+	}{
+		{"default image", "nethax-probe:latest"},
+		{"custom image", "custom-registry.io/nethax-probe:v1.2.3"},
+		{"fully qualified image", "gcr.io/project/nethax-probe:abc123"},
+		{"empty image", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k := &Kubernetes{
+				client:     testClient.NewSimpleClientset(),
+				probeImage: "initial-image",
+			}
+
+			k.SetProbeImage(tt.image)
+
+			if k.probeImage != tt.image {
+				t.Errorf("Expected probeImage to be %q, got %q", tt.image, k.probeImage)
+			}
+		})
+	}
+}
+
 func TestGetEphemeralContainerExitStatus(t *testing.T) {
 	const ephemeralContainerName = "nethaxme"
 
