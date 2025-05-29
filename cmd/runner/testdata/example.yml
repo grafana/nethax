@@ -15,6 +15,11 @@ testPlan:
       endpoint: "http://otel-collector.otel-demo.svc.cluster.local:8888/metrics"
       statusCode: 200
       timeout: 3s
+    - name: "Check with custom probe image"
+      endpoint: "https://example.com"
+      statusCode: 200
+      timeout: 5s
+      probeImage: "myregistry.io/custom-probe:v2.0.0"
   - name: "coredns connectivity tests"
     podSelector:
       labels: "k8s-app=kube-dns"

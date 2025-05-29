@@ -26,8 +26,8 @@ func TestParseTestPlan(t *testing.T) {
 		tt := tp.TestTargets[0]
 
 		for i, tt := range tt.Tests {
-			if tt.Type != "HTTP(S)" {
-				t.Errorf("expecting test target 0, test %d to be of type HTTP(S), got %q", i, tt.Type)
+			if tt.Type != "HTTP(S)" && tt.Type != "tcp" {
+				t.Errorf("expecting test target 0, test %d to be of type HTTP(S) or tcp, got %q", i, tt.Type)
 			}
 		}
 	})
@@ -37,6 +37,20 @@ func TestParseTestPlan(t *testing.T) {
 
 		if e, g := "tcp", tt.Type; e != g {
 			t.Fatalf("expecting type to be %q, got %q", e, g)
+		}
+	})
+
+	t.Run("parse probe image", func(t *testing.T) {
+		// Check that most tests don't have a probe image
+		tt := tp.TestTargets[0].Tests[0]
+		if tt.ProbeImage != "" {
+			t.Errorf("expecting first test to have empty probe image, got %q", tt.ProbeImage)
+		}
+
+		// Check that the test with custom probe image is parsed correctly
+		tt = tp.TestTargets[0].Tests[2]
+		if e, g := "myregistry.io/custom-probe:v2.0.0", tt.ProbeImage; e != g {
+			t.Errorf("expecting probe image to be %q, got %q", e, g)
 		}
 	})
 }

@@ -15,6 +15,7 @@ testPlan:
       endpoint: "http://otel-collector.otel-demo.svc.cluster.local:8888/metrics"
       statusCode: 200
       timeout: 3s
+      # probeImage: "myregistry.io/custom-probe:v1.0.0"  # Optional: override probe image for this test
   - name: "coredns connectivity tests"
     namespace: kube-system
     podSelector:
