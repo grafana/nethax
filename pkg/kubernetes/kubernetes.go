@@ -36,7 +36,8 @@ func New(context string) (*Kubernetes, error) {
 	}
 
 	return &Kubernetes{
-		client: client,
+		client:     client,
+		probeImage: fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
 	}, nil
 }
 
@@ -63,7 +64,8 @@ func getClusterConfig(kontext string) (*rest.Config, error) {
 }
 
 type Kubernetes struct {
-	client kubernetes.Interface
+	client     kubernetes.Interface
+	probeImage string
 }
 
 var (
@@ -86,6 +88,11 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, labels, fields stri
 	return pods.Items, nil
 }
 
+// SetProbeImage sets the probe image to use for ephemeral containers
+func (k *Kubernetes) SetProbeImage(image string) {
+	k.probeImage = image
+}
+
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
@@ -94,10 +101,17 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
+	// Use the configured probe image
+	probeImage := k.probeImage
+	// If no probe image is set, use the default
+	if probeImage == "" {
+		probeImage = fmt.Sprintf("nethax-probe:%s", ProbeImageVersion)
+	}
+
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
+			Image:   probeImage,
 			Command: command,
 			Args:    args,
 		},
