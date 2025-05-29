@@ -15,12 +15,9 @@ ifdef CI
 	RUNNER_VERSION := $(RUNNER_SEMVER)
 	PROBE_VERSION := $(PROBE_SEMVER)
 else
-	COMMIT_SHA := $(shell git rev-parse HEAD)
-	WORKING_TREE_SHA := $(shell git ls-files -m -o --exclude-standard \
-		| while read -r file; do stat -c '%n %a' $${file}; done \
-		| sha1sum | tr -s ' ' | tr -d ' -')
-	RUNNER_VERSION := "$(RUNNER_SEMVER)-$(COMMIT_SHA)-$(WORKING_TREE_SHA)"
-	PROBE_VERSION := "$(PROBE_SEMVER)-$(COMMIT_SHA)-$(WORKING_TREE_SHA)"
+	WORKING_TREE_SHA := $(shell hack/get-worktree-sha.sh)
+	RUNNER_VERSION := "$(RUNNER_SEMVER)-$(WORKING_TREE_SHA)"
+	PROBE_VERSION := "$(PROBE_SEMVER)-$(WORKING_TREE_SHA)"
 endif
 
 RUNNER_IMAGE_PREFIX := "grafana/nethax-runner"
