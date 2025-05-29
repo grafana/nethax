@@ -16,6 +16,7 @@ type Test struct {
 	Type       string        `yaml:"type,omitempty"`
 	ExpectFail bool          `yaml:"expectFail,omitempty"`
 	Timeout    time.Duration `yaml:"timeout"`
+	ProbeImage string        `yaml:"probeImage,omitempty"`
 }
 
 // PodSelector represents how pods should be selected for testing

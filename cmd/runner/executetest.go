@@ -50,12 +50,7 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(exitCodeConfigError)
 			}
 
-			// Set custom probe image if provided
-			if probeImage != "" {
-				k.SetProbeImage(probeImage)
-			}
-
-			if !executeTest(cmd.Context(), k, plan) {
+			if !executeTest(cmd.Context(), k, plan, probeImage) {
 				os.Exit(exitCodeFailure)
 			}
 		},
@@ -74,7 +69,7 @@ func indent(level int, format string, a ...any) {
 	fmt.Println()
 }
 
-func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) bool {
+func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, defaultProbeImage string) bool {
 	indent(0, "Test Plan: %s", plan.Name)
 	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
@@ -137,8 +132,17 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 					}
 				}
 
+				// Determine which probe image to use
+				probeImage := test.ProbeImage
+				if probeImage == "" {
+					probeImage = defaultProbeImage
+				}
+				if probeImage != "" {
+					indent(3, "Probe Image: %s", probeImage)
+				}
+
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, probeImage, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()

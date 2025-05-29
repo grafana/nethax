@@ -129,7 +129,7 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
 
 	// execute
-	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, []string{"nyaa"}, []string{"rawr"})
+	actual, _, _ := k.LaunchEphemeralContainer(t.Context(), pod, "", []string{"nyaa"}, []string{"rawr"})
 
 	// assert
 	if len(actual.Spec.EphemeralContainers) != 1 {
@@ -141,29 +141,67 @@ func TestLaunchEphemeralContainer(t *testing.T) {
 	k.client.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{})
 }
 
-func TestSetProbeImage(t *testing.T) {
+func TestLaunchEphemeralContainerWithProbeImage(t *testing.T) {
 	tests := []struct {
-		name  string
-		image string
+		name          string
+		probeImage    string
+		expectedImage string
 	}{
-		{"default image", "nethax-probe:latest"},
-		{"custom image", "custom-registry.io/nethax-probe:v1.2.3"},
-		{"fully qualified image", "gcr.io/project/nethax-probe:abc123"},
-		{"empty image", ""},
+		{
+			name:          "default probe image when empty",
+			probeImage:    "",
+			expectedImage: fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
+		},
+		{
+			name:          "custom probe image",
+			probeImage:    "custom-registry.io/my-probe:v1.2.3",
+			expectedImage: "custom-registry.io/my-probe:v1.2.3",
+		},
+		{
+			name:          "fully qualified image",
+			probeImage:    "gcr.io/project/nethax-probe:abc123",
+			expectedImage: "gcr.io/project/nethax-probe:abc123",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &Kubernetes{
-				client:     testClient.NewSimpleClientset(),
-				probeImage: "initial-image",
+			k := setup()
+			name := "test-probe-image"
+			namespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: name}}
+			k.client.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: name,
+					Name:      name,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: "test-container"},
+					},
+				},
+			}
+			k.client.CoreV1().Pods(name).Create(t.Context(), pod, metav1.CreateOptions{})
+
+			// Execute with specific probe image
+			actual, _, err := k.LaunchEphemeralContainer(t.Context(), pod, tt.probeImage, []string{"test"}, []string{"arg"})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
-			k.SetProbeImage(tt.image)
-
-			if k.probeImage != tt.image {
-				t.Errorf("Expected probeImage to be %q, got %q", tt.image, k.probeImage)
+			// Verify the correct image was used
+			if len(actual.Spec.EphemeralContainers) != 1 {
+				t.Fatalf("Expected 1 ephemeral container, got: %d", len(actual.Spec.EphemeralContainers))
 			}
+
+			if actual.Spec.EphemeralContainers[0].Image != tt.expectedImage {
+				t.Errorf("Expected image %s, got %s", tt.expectedImage, actual.Spec.EphemeralContainers[0].Image)
+			}
+
+			// Clean up
+			k.client.CoreV1().Pods(name).Delete(t.Context(), name, metav1.DeleteOptions{})
+			k.client.CoreV1().Namespaces().Delete(t.Context(), name, metav1.DeleteOptions{})
 		})
 	}
 }
