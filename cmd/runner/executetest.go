@@ -58,7 +58,7 @@ func ExecuteTest() *cobra.Command {
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
-	cmd.Flags().StringVar(&probeImage, "probe-image", "", fmt.Sprintf("Probe image to use for ephemeral probe containers (defaults to grafana/nethax-probe:%s')", kubernetes.ProbeImageVersion))
+	cmd.Flags().StringVar(&probeImage, "probe-image", "", fmt.Sprintf("Default probe image to use if test plan doesn't specify one (defaults to grafana/nethax-probe:%s')", kubernetes.ProbeImageVersion))
 
 	return cmd
 }
