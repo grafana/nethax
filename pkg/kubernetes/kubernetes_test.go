@@ -147,18 +147,30 @@ func TestGetEphemeralContainerExitStatus(t *testing.T) {
 	tests := map[string]struct {
 		statuses []corev1.ContainerStatus
 		exp      int32
+		err      error
 	}{
-		"no ephemeral containers": {nil, -1},
-		"ephemeral container not terminated": {
+		"no ephemeral containers": {nil, -1, errEphemeralContainerNotFound},
+		"ephemeral container waiting": {
 			[]corev1.ContainerStatus{
 				{
 					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Terminated: nil},
+					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{}},
 				},
 			},
 			-1,
+			nil,
 		},
-		"other ephemeral container terminated": {
+		"ephemeral container running": {
+			[]corev1.ContainerStatus{
+				{
+					Name:  ephemeralContainerName,
+					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+				},
+			},
+			-1,
+			nil,
+		},
+		"ephemeral container not found": {
 			[]corev1.ContainerStatus{
 				{
 					Name: "some-other-c",
@@ -170,6 +182,7 @@ func TestGetEphemeralContainerExitStatus(t *testing.T) {
 				},
 			},
 			-1,
+			errEphemeralContainerNotFound,
 		},
 		"ephemeral container terminated": {
 			[]corev1.ContainerStatus{
@@ -191,6 +204,7 @@ func TestGetEphemeralContainerExitStatus(t *testing.T) {
 				},
 			},
 			2,
+			nil,
 		},
 	}
 
@@ -211,8 +225,8 @@ func TestGetEphemeralContainerExitStatus(t *testing.T) {
 			}
 
 			got, err := k.getEphemeralContainerExitStatus(t.Context(), pod, ephemeralContainerName)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("expecting error %v, got %v", tt.err, err)
 			}
 			if tt.exp != got {
 				t.Errorf("expecting exist status %d, got %d", tt.exp, got)
@@ -248,8 +262,9 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 	tests := map[string]struct {
 		statuses []corev1.ContainerStatus
 		exp      bool
+		err      error
 	}{
-		"no ephemeral containers": {nil, false},
+		"no ephemeral containers": {nil, false, errEphemeralContainerNotFound},
 		"ephemeral container not terminated": {
 			[]corev1.ContainerStatus{
 				{
@@ -258,8 +273,29 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 				},
 			},
 			false,
+			nil,
 		},
-		"other ephemeral container terminated": {
+		"ephemeral container running": {
+			[]corev1.ContainerStatus{
+				{
+					Name:  ephemeralContainerName,
+					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+				},
+			},
+			false,
+			nil,
+		},
+		"ephemeral container waiting": {
+			[]corev1.ContainerStatus{
+				{
+					Name:  ephemeralContainerName,
+					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{}},
+				},
+			},
+			false,
+			nil,
+		},
+		"ephemeral container not found": {
 			[]corev1.ContainerStatus{
 				{
 					Name: "some-other-c",
@@ -271,6 +307,7 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 				},
 			},
 			false,
+			errEphemeralContainerNotFound,
 		},
 		"ephemeral container terminated": {
 			[]corev1.ContainerStatus{
@@ -292,6 +329,7 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 				},
 			},
 			true,
+			nil,
 		},
 	}
 
@@ -312,75 +350,14 @@ func TestIsEphemeralContainerTerminated(t *testing.T) {
 			}
 
 			ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("unexpecting error %v, got %v", tt.err, err)
 			}
 			if tt.exp != ok {
 				t.Errorf("expecting container terminated %t, got %t", tt.exp, ok)
 			}
 		})
 	}
-
-	t.Run("errors", func(t *testing.T) {
-		t.Run("pod not found", func(t *testing.T) {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "mimir-dev-013",
-					Name:      "ingester",
-				},
-			}
-
-			k := &Kubernetes{
-				client: testClient.NewSimpleClientset(),
-			}
-
-			ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-			if err == nil {
-				t.Fatal("expecting error, got nil")
-			}
-			if ok {
-				t.Errorf("expecting container terminated, got %t", ok)
-			}
-		})
-
-		for n, s := range map[string]corev1.ContainerState{
-			"waiting": {
-				Waiting: &corev1.ContainerStateWaiting{},
-			},
-			"running": {
-				Running: &corev1.ContainerStateRunning{},
-			},
-		} {
-			t.Run(n, func(t *testing.T) {
-				pod := &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "mimir-dev-013",
-						Name:      "ingester",
-					},
-					Status: corev1.PodStatus{
-						EphemeralContainerStatuses: []corev1.ContainerStatus{
-							{
-								Name:  ephemeralContainerName,
-								State: s,
-							},
-						},
-					},
-				}
-
-				k := &Kubernetes{
-					client: testClient.NewSimpleClientset(pod),
-				}
-
-				ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if ok {
-					t.Errorf("expecting container terminated to be false")
-				}
-			})
-		}
-	})
 }
 
 func TestPollEphemeralContainerStatus(t *testing.T) {

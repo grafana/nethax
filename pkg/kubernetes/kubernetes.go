@@ -125,6 +125,8 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 	return result, ephemeralName, nil
 }
 
+var errEphemeralContainerNotFound = errors.New("ephemeral container not found")
+
 func (k *Kubernetes) getEphemeralContainerExitStatus(ctx context.Context, pod *corev1.Pod, ephemeralContainerName string) (int32, error) {
 	pod, err := k.client.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
@@ -133,12 +135,14 @@ func (k *Kubernetes) getEphemeralContainerExitStatus(ctx context.Context, pod *c
 
 	for _, ec := range pod.Status.EphemeralContainerStatuses {
 		if ec.Name == ephemeralContainerName {
-			if ec.State.Terminated != nil && ec.State.Terminated.ExitCode > -1 {
+			if ec.State.Terminated != nil {
 				return ec.State.Terminated.ExitCode, nil
 			}
+			return -1, nil
 		}
 	}
-	return -1, nil
+
+	return -1, errEphemeralContainerNotFound
 }
 
 func (k *Kubernetes) isEphemeralContainerTerminated(pod *corev1.Pod, ephemeralContainerName string) wait.ConditionWithContextFunc {
