@@ -23,6 +23,9 @@ else
 	PROBE_VERSION := "$(PROBE_SEMVER)-$(COMMIT_SHA)-$(WORKING_TREE_SHA)"
 endif
 
+RUNNER_IMAGE_PREFIX := "grafana/nethax-runner"
+PROBE_IMAGE_PREFIX := "grafana/nethax-probe"
+
 CUR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 DIR_RUNNER := "$(CUR_DIR)/cmd/runner"
 DIR_PROBE := "$(CUR_DIR)/cmd/probe"
@@ -54,19 +57,19 @@ deps:
 docker-build: docker-runner docker-probe
 
 docker-push:
-	@docker push grafana/nethax-runner:$(RUNNER_VERSION)
-	@docker push grafana/nethax-runner:latest
-	@docker push grafana/nethax-probe:$(PROBE_VERSION)
-	@docker push grafana/nethax-probe:latest
+	@docker push $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION)
+	@docker push $(RUNNER_IMAGE_PREFIX):latest
+	@docker push $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION)
+	@docker push $(PROBE_IMAGE_PREFIX):latest
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-runner:$(RUNNER_VERSION) -t nethax-runner:latest .
+	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) -t $(RUNNER_IMAGE_PREFIX):latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-runner:$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t nethax-probe:$(PROBE_VERSION) -t nethax-probe:latest .
+	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):latest .
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
 endif
