@@ -19,6 +19,7 @@ import (
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
 	var testFile string
+	var probeImage string
 
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
@@ -49,6 +50,11 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(exitCodeConfigError)
 			}
 
+			// Set custom probe image if provided
+			if probeImage != "" {
+				k.SetProbeImage(probeImage)
+			}
+
 			if !executeTest(cmd.Context(), k, plan) {
 				os.Exit(exitCodeFailure)
 			}
@@ -57,6 +63,7 @@ func ExecuteTest() *cobra.Command {
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
+	cmd.Flags().StringVar(&probeImage, "probe-image", "", fmt.Sprintf("Probe image to use for ephemeral probe containers (defaults to grafana/nethax-probe:%s')", kubernetes.ProbeImageVersion))
 
 	return cmd
 }
