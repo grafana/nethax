@@ -96,7 +96,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	// Use the provided probe image, or default if empty
 	if probeImage == "" {
-		probeImage = fmt.Sprintf("nethax-probe:%s", ProbeImageVersion)
+		probeImage = fmt.Sprintf("grafana/nethax-probe:%s", ProbeImageVersion)
 	}
 
 	debugContainer := &corev1.EphemeralContainer{

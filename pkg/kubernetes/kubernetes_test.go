@@ -143,7 +143,7 @@ func TestLaunchEphemeralContainerWithProbeImage(t *testing.T) {
 		{
 			name:          "default probe image when empty",
 			probeImage:    "",
-			expectedImage: fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
+			expectedImage: fmt.Sprintf("grafana/nethax-probe:%s", ProbeImageVersion),
 		},
 		{
 			name:          "custom probe image",
