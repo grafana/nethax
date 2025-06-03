@@ -86,6 +86,14 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, labels, fields stri
 	return pods.Items, nil
 }
 
+func GetProbeImage(probeImage string) string {
+	// Use the provided probe image, or default if empty
+	if probeImage == "" {
+		probeImage = fmt.Sprintf("grafana/nethax-probe:%s", ProbeImageVersion)
+	}
+	return probeImage
+}
+
 func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, probeImage string, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
@@ -94,15 +102,10 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 
 	ephemeralName := fmt.Sprintf("nethax-probe-%v", time.Now().UnixNano())
 
-	// Use the provided probe image, or default if empty
-	if probeImage == "" {
-		probeImage = fmt.Sprintf("grafana/nethax-probe:%s", ProbeImageVersion)
-	}
-
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   probeImage,
+			Image:   GetProbeImage(probeImage),
 			Command: command,
 			Args:    args,
 		},

@@ -69,7 +69,7 @@ func indent(level int, format string, a ...any) {
 	fmt.Println()
 }
 
-func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, defaultProbeImage string) bool {
+func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, probeImageFlag string) bool {
 	indent(0, "Test Plan: %s", plan.Name)
 	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
@@ -135,9 +135,9 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, 
 				// Determine which probe image to use
 				probeImage := test.ProbeImage
 				if probeImage == "" {
-					probeImage = defaultProbeImage
+					probeImage = probeImageFlag
 				}
-				indent(3, "Probe Image: '%s'", probeImage)
+				indent(3, "Probe Image: '%s'", kubernetes.GetProbeImage(probeImage))
 
 				// Launch ephemeral container to execute the test
 				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, probeImage, command, arguments)
