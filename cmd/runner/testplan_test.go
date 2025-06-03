@@ -26,8 +26,8 @@ func TestParseTestPlan(t *testing.T) {
 		tt := tp.TestTargets[0]
 
 		for i, tt := range tt.Tests {
-			if tt.Type != "HTTP(S)" && tt.Type != "tcp" {
-				t.Errorf("expecting test target 0, test %d to be of type HTTP(S) or tcp, got %q", i, tt.Type)
+			if tt.Type != "HTTP(S)" {
+				t.Errorf("expecting test target 0, test %d to be of type HTTP(S), got %q", i, tt.Type)
 			}
 		}
 	})
