@@ -137,9 +137,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, 
 				if probeImage == "" {
 					probeImage = defaultProbeImage
 				}
-				if probeImage != "" {
-					indent(3, "Probe Image: %s", probeImage)
-				}
+				indent(3, "Probe Image: '%s'", probeImage)
 
 				// Launch ephemeral container to execute the test
 				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, probeImage, command, arguments)
