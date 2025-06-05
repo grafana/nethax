@@ -137,12 +137,10 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 					}
 				}
 
-				// Determine which probe image to use
-				probeImage := kubernetes.GetProbeImage(test.ProbeImage)
-				indent(3, "Probe Image: '%s'", probeImage)
+				indent(3, "Probe Image: '%s'", kubernetes.GetProbeImage(test.ProbeImage))
 
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, probeImage, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, test.ProbeImage, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()
