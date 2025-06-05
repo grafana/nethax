@@ -19,7 +19,7 @@ import (
 
 var (
 	// ProbeImageVersion is set at build time via ldflags
-	ProbeImageVersion = "latest"
+	DefaultProbeImage = "grafana/nethax-probe:latest"
 )
 
 // New returns a new Kubernetes object, connected to the given
@@ -86,7 +86,15 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, labels, fields stri
 	return pods.Items, nil
 }
 
-func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, command []string, args []string) (*corev1.Pod, string, error) {
+func GetProbeImage(probeImage string) string {
+	// Use the provided probe image, or default if empty
+	if probeImage == "" {
+		probeImage = DefaultProbeImage
+	}
+	return probeImage
+}
+
+func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.Pod, probeImage string, command []string, args []string) (*corev1.Pod, string, error) {
 	podJS, err := json.Marshal(pod)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating JSON for pod: %v", err)
@@ -97,7 +105,7 @@ func (k *Kubernetes) LaunchEphemeralContainer(ctx context.Context, pod *corev1.P
 	debugContainer := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:    ephemeralName,
-			Image:   fmt.Sprintf("nethax-probe:%s", ProbeImageVersion),
+			Image:   GetProbeImage(probeImage),
 			Command: command,
 			Args:    args,
 		},

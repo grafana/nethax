@@ -19,6 +19,7 @@ import (
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
 	var testFile string
+	var defaultProbeImage string
 
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
@@ -49,6 +50,7 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(exitCodeConfigError)
 			}
 
+			kubernetes.DefaultProbeImage = defaultProbeImage
 			if !executeTest(cmd.Context(), k, plan) {
 				os.Exit(exitCodeFailure)
 			}
@@ -57,6 +59,11 @@ func ExecuteTest() *cobra.Command {
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
+	cmd.Flags().StringVar(&defaultProbeImage,
+		"default-probe-image",
+		kubernetes.DefaultProbeImage,
+		"Default probe image to use if test plan doesn't specify one.",
+	)
 
 	return cmd
 }
@@ -130,8 +137,10 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 					}
 				}
 
+				indent(3, "Probe Image: '%s'", kubernetes.GetProbeImage(test.ProbeImage))
+
 				// Launch ephemeral container to execute the test
-				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, command, arguments)
+				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, test.ProbeImage, command, arguments)
 				if err != nil {
 					indent(3, "Error: Failed to launch ephemeral probe container: %v", err)
 					fmt.Println()

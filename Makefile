@@ -33,10 +33,10 @@ export GOEXPERIMENT=synctest
 build: build-runner build-probe
 
 build-runner: deps-runner
-	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_RUNNER)
+	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_RUNNER)
 
 build-probe: deps-probe
-	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.ProbeImageVersion=$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_PROBE)
+	go build -ldflags="-X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION)'" -o "$(CUR_DIR)/bin" $(DIR_PROBE)
 
 .PHONY: clean
 clean:
@@ -60,15 +60,15 @@ docker-push:
 	@docker push $(PROBE_IMAGE_PREFIX):latest
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_VERSION=$(PROBE_VERSION) -t $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) -t $(RUNNER_IMAGE_PREFIX):latest .
+	@docker build -f Dockerfile-runner --build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) -t $(RUNNER_IMAGE_PREFIX):latest .
 ifndef CI
-	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-runner:$(RUNNER_VERSION) || true
+	@kind load docker-image --name $(KIND_CLUSTER_NAME) $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_VERSION=$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):latest .
+	@docker build -f Dockerfile-probe --build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):latest .
 ifndef CI
-	@kind load docker-image --name $(KIND_CLUSTER_NAME) nethax-probe:$(PROBE_VERSION) || true
+	@kind load docker-image --name $(KIND_CLUSTER_NAME) $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) || true
 endif
 
 .PHONY: test
@@ -100,7 +100,7 @@ run-example-test-plan: docker-build
 		--mount "type=bind,source=$(TEST_PLAN),target=/test-plan.yaml,readonly" \
 		-e "KUBECONFIG=/.kube/config" \
 		--user $(id -u):$(id -g) \
-		nethax-runner:$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
+		$(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) "execute-test" "-f" "/test-plan.yaml"; \
 	rm -rf $$TMP_KUBECONFIG
 
 .PHONY: checks
