@@ -74,7 +74,7 @@ func indent(level int, format string, a ...any) {
 	fmt.Println()
 }
 
-func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, probeImageFlag string) bool {
+func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) bool {
 	indent(0, "Test Plan: %s", plan.Name)
 	indent(0, "Description: %s", plan.Description)
 	fmt.Println()
