@@ -51,7 +51,7 @@ func ExecuteTest() *cobra.Command {
 			}
 
 			kubernetes.DefaultProbeImage = defaultProbeImage
-			if !executeTest(cmd.Context(), k, plan, defaultProbeImage) {
+			if !executeTest(cmd.Context(), k, plan) {
 				os.Exit(exitCodeFailure)
 			}
 		},
