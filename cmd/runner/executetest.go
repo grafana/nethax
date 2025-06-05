@@ -19,7 +19,7 @@ import (
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
 	var testFile string
-	var probeImage string
+	var defaultProbeImage string
 
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
@@ -50,7 +50,8 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(exitCodeConfigError)
 			}
 
-			if !executeTest(cmd.Context(), k, plan, probeImage) {
+			kubernetes.DefaultProbeImage = defaultProbeImage
+			if !executeTest(cmd.Context(), k, plan, defaultProbeImage) {
 				os.Exit(exitCodeFailure)
 			}
 		},
@@ -58,7 +59,11 @@ func ExecuteTest() *cobra.Command {
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
-	cmd.Flags().StringVar(&probeImage, "probe-image", "", fmt.Sprintf("Default probe image to use if test plan doesn't specify one (defaults to grafana/nethax-probe:%s')", kubernetes.ProbeImageVersion))
+	cmd.Flags().StringVar(&defaultProbeImage,
+		"default-probe-image",
+		kubernetes.DefaultProbeImage,
+		"Default probe image to use if test plan doesn't specify one.",
+	)
 
 	return cmd
 }
@@ -133,11 +138,8 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan, 
 				}
 
 				// Determine which probe image to use
-				probeImage := test.ProbeImage
-				if probeImage == "" {
-					probeImage = probeImageFlag
-				}
-				indent(3, "Probe Image: '%s'", kubernetes.GetProbeImage(probeImage))
+				probeImage := kubernetes.GetProbeImage(test.ProbeImage)
+				indent(3, "Probe Image: '%s'", probeImage)
 
 				// Launch ephemeral container to execute the test
 				probedPod, probeContainerName, err := k.LaunchEphemeralContainer(ctx, &pod, probeImage, command, arguments)

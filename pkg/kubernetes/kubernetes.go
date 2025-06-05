@@ -19,7 +19,7 @@ import (
 
 var (
 	// ProbeImageVersion is set at build time via ldflags
-	ProbeImageVersion = "latest"
+	DefaultProbeImage = "grafana/nethax-probe:latest"
 )
 
 // New returns a new Kubernetes object, connected to the given
@@ -89,7 +89,7 @@ func (k *Kubernetes) GetPods(ctx context.Context, namespace, labels, fields stri
 func GetProbeImage(probeImage string) string {
 	// Use the provided probe image, or default if empty
 	if probeImage == "" {
-		probeImage = fmt.Sprintf("grafana/nethax-probe:%s", ProbeImageVersion)
+		probeImage = DefaultProbeImage
 	}
 	return probeImage
 }
