@@ -106,7 +106,7 @@ func yamlUnmarshalTestType(tt *TestType, b []byte) error {
 	case "tcp":
 		*tt = TestTypeTCP
 	default:
-		return errInvalidTestType
+		return fmt.Errorf("%w: %q", errInvalidTestType, b)
 	}
 
 	return nil
