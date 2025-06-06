@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"time"
@@ -76,4 +77,37 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 		}
 	}
 	return &plan.TestPlan, nil
+}
+
+type TestType int
+
+func (tt TestType) String() string {
+	switch tt {
+	case TestTypeHTTP:
+		return "http"
+	case TestTypeTCP:
+		return "tcp"
+	default:
+		panic("unrecognized testype")
+	}
+}
+
+const (
+	TestTypeHTTP TestType = iota
+	TestTypeTCP
+)
+
+var errInvalidTestType = errors.New("invalid test type")
+
+func yamlUnmarshalTestType(tt *TestType, b []byte) error {
+	switch strings.ToLower(string(b)) {
+	case "", "http", "https":
+		*tt = TestTypeHTTP
+	case "tcp":
+		*tt = TestTypeTCP
+	default:
+		return errInvalidTestType
+	}
+
+	return nil
 }

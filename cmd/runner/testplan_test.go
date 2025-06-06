@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -77,5 +78,44 @@ func TestPodSelector_String(t *testing.T) {
 		if got := fmt.Sprint(tt.sel); tt.exp != got {
 			t.Errorf("for %#v expecting %q, got %q", tt.sel, tt.exp, got)
 		}
+	}
+}
+
+func TestTestType(t *testing.T) {
+	// We default to HTTP
+	var tt TestType
+
+	if tt != TestTypeHTTP {
+		t.Fatalf("unexpected zero value: %d", tt)
+	}
+}
+
+func TestTestType_UnmarshalYAML(t *testing.T) {
+	tests := map[string]struct {
+		exp TestType
+		err error
+	}{
+		"":      {TestTypeHTTP, nil},
+		"http":  {TestTypeHTTP, nil},
+		"https": {TestTypeHTTP, nil},
+		"tcp":   {TestTypeTCP, nil},
+		// ignore case
+		"HTTP":  {TestTypeHTTP, nil},
+		"HTTPS": {TestTypeHTTP, nil},
+		"TCP":   {TestTypeTCP, nil},
+	}
+
+	for in, tt := range tests {
+		t.Run("in="+in, func(t *testing.T) {
+			var got TestType
+
+			err := yamlUnmarshalTestType(&got, []byte(in))
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("expecting error %v, got %v", tt.err, err)
+			}
+			if tt.exp != got {
+				t.Fatalf("expecting TestType %d (%[1]s) got %d (%[2]s)", tt.exp, got)
+			}
+		})
 	}
 }
