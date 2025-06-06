@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ type Test struct {
 	Name       string        `yaml:"name"`
 	Endpoint   string        `yaml:"endpoint"`
 	StatusCode int           `yaml:"statusCode"`
-	Type       string        `yaml:"type,omitempty"`
+	Type       TestType      `yaml:"type,omitempty"`
 	ExpectFail bool          `yaml:"expectFail,omitempty"`
 	Timeout    time.Duration `yaml:"timeout"`
 	ProbeImage string        `yaml:"probeImage,omitempty"`
@@ -68,14 +69,6 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 		return nil, err
 	}
 
-	// Set default test type to HTTP(S)
-	for i, target := range plan.TestPlan.TestTargets {
-		for j, test := range target.Tests {
-			if test.Type == "" {
-				plan.TestPlan.TestTargets[i].Tests[j].Type = "HTTP(S)"
-			}
-		}
-	}
 	return &plan.TestPlan, nil
 }
 
@@ -100,7 +93,7 @@ const (
 var errInvalidTestType = errors.New("invalid test type")
 
 func yamlUnmarshalTestType(tt *TestType, b []byte) error {
-	switch strings.ToLower(string(b)) {
+	switch strings.TrimSpace(strings.ToLower(string(b))) {
 	case "", "http", "https":
 		*tt = TestTypeHTTP
 	case "tcp":
@@ -110,4 +103,8 @@ func yamlUnmarshalTestType(tt *TestType, b []byte) error {
 	}
 
 	return nil
+}
+
+func init() {
+	yaml.RegisterCustomUnmarshaler(yamlUnmarshalTestType)
 }

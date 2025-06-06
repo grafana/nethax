@@ -27,7 +27,7 @@ func TestParseTestPlan(t *testing.T) {
 		tt := tp.TestTargets[0]
 
 		for i, tt := range tt.Tests {
-			if tt.Type != "HTTP(S)" {
+			if tt.Type != TestTypeHTTP {
 				t.Errorf("expecting test target 0, test %d to be of type HTTP(S), got %q", i, tt.Type)
 			}
 		}
@@ -36,7 +36,7 @@ func TestParseTestPlan(t *testing.T) {
 	t.Run("don't override type", func(t *testing.T) {
 		tt := tp.TestTargets[1].Tests[1]
 
-		if e, g := "tcp", tt.Type; e != g {
+		if e, g := TestTypeTCP, tt.Type; e != g {
 			t.Fatalf("expecting type to be %q, got %q", e, g)
 		}
 	})

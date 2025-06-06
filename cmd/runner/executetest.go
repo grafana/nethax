@@ -112,7 +112,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				indent(3, "Timeout: %s", test.Timeout.String())
 
 				// Parse the endpoint URL for HTTP tests
-				if test.Type != "tcp" {
+				if test.Type != TestTypeTCP {
 					_, err := url.Parse(test.Endpoint)
 					if err != nil {
 						indent(3, "Error: Invalid endpoint URL: %v", err)
@@ -130,7 +130,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 					pf.Flagify(pf.ArgExpectedStatus), strconv.Itoa(test.StatusCode),
 				}
 
-				if test.Type == pf.TestTypeTCP {
+				if test.Type == TestTypeTCP {
 					arguments = append(arguments, pf.Flagify(pf.ArgType), pf.TestTypeTCP)
 					if test.ExpectFail {
 						arguments = append(arguments, pf.Flagify(pf.ArgExpectFail))
