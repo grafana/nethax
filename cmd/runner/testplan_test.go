@@ -103,6 +103,8 @@ func TestTestType_UnmarshalYAML(t *testing.T) {
 		"HTTP":  {TestTypeHTTP, nil},
 		"HTTPS": {TestTypeHTTP, nil},
 		"TCP":   {TestTypeTCP, nil},
+		// invalid values // TODO(inkel) this could probably be a fuzz test
+		"foo": {TestTypeHTTP, errInvalidTestType},
 	}
 
 	for in, tt := range tests {
