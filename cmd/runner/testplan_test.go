@@ -119,3 +119,33 @@ func TestTestType_UnmarshalYAML(t *testing.T) {
 		})
 	}
 }
+
+func TestSelectionMode_UnmarshalYAML(t *testing.T) {
+	tests := map[string]struct {
+		exp SelectionMode
+		err error
+	}{
+		// cannot be empty
+		"": {"", errInvalidSelectionMode},
+
+		"all": {SelectionModeAll, nil},
+		"ALL": {SelectionModeAll, nil},
+
+		"random": {SelectionModeRandom, nil},
+		"rAnDom": {SelectionModeRandom, nil},
+	}
+
+	for in, tt := range tests {
+		t.Run("in="+in, func(t *testing.T) {
+			var got SelectionMode
+
+			err := yamlUnmarshalSelectionMode(&got, []byte(in))
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("expecting error %v, got %v", tt.err, err)
+			}
+			if tt.exp != got {
+				t.Fatalf("expecting SelectionMode %q, got %q", tt.exp, got)
+			}
+		})
+	}
+}

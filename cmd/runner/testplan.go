@@ -108,3 +108,28 @@ func yamlUnmarshalTestType(tt *TestType, b []byte) error {
 func init() {
 	yaml.RegisterCustomUnmarshaler(yamlUnmarshalTestType)
 }
+
+type SelectionMode string
+
+const (
+	SelectionModeAll    SelectionMode = "all"
+	SelectionModeRandom SelectionMode = "random"
+)
+
+func yamlUnmarshalSelectionMode(m *SelectionMode, b []byte) error {
+	// we need to add the cases with quotes because YAML is such a
+	// good language that `foo: bar` is the same as `foo: "bar"` and
+	// also the same as `foo: 'bar'` but, hey, the three values are
+	// passed as-is to the parser and thus have to take into account
+	// these characters.
+	switch strings.TrimSpace(strings.ToLower(string(b))) {
+	case "all", "\"all\"", "'all'":
+		*m = SelectionModeAll
+	case "random", "\"random\"", "'random'":
+		*m = SelectionModeRandom
+	default:
+		return fmt.Errorf("%w: %q", errInvalidSelectionMode, b)
+	}
+
+	return nil
+}
