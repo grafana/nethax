@@ -197,8 +197,8 @@ var (
 	errNoReadyPods          = errors.New("no ready pods found")
 )
 
-func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
-	if mode := mode; mode != "all" && mode != "random" {
+func selectPods(mode SelectionMode, pods []corev1.Pod) ([]corev1.Pod, error) {
+	if mode != SelectionModeAll && mode != SelectionModeRandom {
 		return nil, fmt.Errorf("%w: %s", errInvalidSelectionMode, mode)
 	}
 
@@ -216,7 +216,7 @@ func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
 	}
 
 	// Select pods based on the selection mode
-	if mode == "random" {
+	if mode == SelectionModeRandom {
 		// Select one random pod from the ready pods
 		randomIndex := rand.Intn(len(selectedPods))
 		selectedPods = []corev1.Pod{selectedPods[randomIndex]}

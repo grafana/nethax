@@ -23,15 +23,15 @@ type Test struct {
 
 // PodSelector represents how pods should be selected for testing
 type PodSelector struct {
-	Mode   string `yaml:"mode"` // "all" or "random"
-	Labels string `yaml:"labels"`
-	Fields string `yaml:"fields"`
+	Mode   SelectionMode `yaml:"mode"` // "all" or "random"
+	Labels string        `yaml:"labels"`
+	Fields string        `yaml:"fields"`
 }
 
 func (s PodSelector) String() string {
 	var b strings.Builder
 	b.WriteString("mode: ")
-	b.WriteString(s.Mode)
+	b.WriteString(string(s.Mode))
 
 	if s.Labels != "" {
 		b.WriteString(", labels: ")
@@ -107,6 +107,7 @@ func yamlUnmarshalTestType(tt *TestType, b []byte) error {
 
 func init() {
 	yaml.RegisterCustomUnmarshaler(yamlUnmarshalTestType)
+	yaml.RegisterCustomUnmarshaler(yamlUnmarshalSelectionMode)
 }
 
 type SelectionMode string
