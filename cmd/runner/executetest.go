@@ -112,7 +112,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				indent(3, "Timeout: %s", test.Timeout.String())
 
 				// Parse the endpoint URL for HTTP tests
-				if test.Type != "tcp" {
+				if test.Type != TestTypeTCP {
 					_, err := url.Parse(test.Endpoint)
 					if err != nil {
 						indent(3, "Error: Invalid endpoint URL: %v", err)
@@ -130,7 +130,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 					pf.Flagify(pf.ArgExpectedStatus), strconv.Itoa(test.StatusCode),
 				}
 
-				if test.Type == pf.TestTypeTCP {
+				if test.Type == TestTypeTCP {
 					arguments = append(arguments, pf.Flagify(pf.ArgType), pf.TestTypeTCP)
 					if test.ExpectFail {
 						arguments = append(arguments, pf.Flagify(pf.ArgExpectFail))
@@ -197,8 +197,8 @@ var (
 	errNoReadyPods          = errors.New("no ready pods found")
 )
 
-func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
-	if mode := mode; mode != "all" && mode != "random" {
+func selectPods(mode SelectionMode, pods []corev1.Pod) ([]corev1.Pod, error) {
+	if mode != SelectionModeAll && mode != SelectionModeRandom {
 		return nil, fmt.Errorf("%w: %s", errInvalidSelectionMode, mode)
 	}
 
@@ -216,7 +216,7 @@ func selectPods(mode string, pods []corev1.Pod) ([]corev1.Pod, error) {
 	}
 
 	// Select pods based on the selection mode
-	if mode == "random" {
+	if mode == SelectionModeRandom {
 		// Select one random pod from the ready pods
 		randomIndex := rand.Intn(len(selectedPods))
 		selectedPods = []corev1.Pod{selectedPods[randomIndex]}

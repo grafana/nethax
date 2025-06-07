@@ -128,7 +128,7 @@ func TestSelectPods(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		mode string
+		mode SelectionMode
 		pods []corev1.Pod
 		exp  []corev1.Pod
 		err  error
