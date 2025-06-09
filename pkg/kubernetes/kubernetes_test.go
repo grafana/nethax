@@ -1,14 +1,18 @@
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"testing"
 	"testing/synctest"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	testClient "k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 func setup() *Kubernetes {
@@ -188,308 +192,134 @@ func TestLaunchEphemeralContainerWithProbeImage(t *testing.T) {
 	}
 }
 
-func TestGetEphemeralContainerExitStatus(t *testing.T) {
-	const ephemeralContainerName = "nethaxme"
+func TestPollEphemeralContainerStatus(t *testing.T) {
+	const (
+		ns      = "foo"
+		podName = "bar"
 
-	tests := map[string]struct {
-		statuses []corev1.ContainerStatus
-		exp      int32
-		err      error
-	}{
-		"no ephemeral containers": {nil, -1, errEphemeralContainerNotFound},
-		"ephemeral container waiting": {
-			[]corev1.ContainerStatus{
-				{
-					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{}},
-				},
-			},
-			-1,
-			nil,
-		},
-		"ephemeral container running": {
-			[]corev1.ContainerStatus{
-				{
-					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
-				},
-			},
-			-1,
-			nil,
-		},
-		"ephemeral container not found": {
-			[]corev1.ContainerStatus{
-				{
-					Name: "some-other-c",
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 0,
-						},
-					},
-				},
-			},
-			-1,
-			errEphemeralContainerNotFound,
-		},
-		"ephemeral container terminated": {
-			[]corev1.ContainerStatus{
-				{
-					Name: "some-other-c",
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 0,
-						},
-					},
-				},
-				{
-					Name: ephemeralContainerName,
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 2,
-						},
-					},
-				},
-			},
-			2,
-			nil,
-		},
-	}
+		ephemeralContainer = "quux"
+	)
 
-	for n, tt := range tests {
-		t.Run(n, func(t *testing.T) {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "mimir-dev-013",
-					Name:      "ingester",
-				},
-				Status: corev1.PodStatus{
-					EphemeralContainerStatuses: tt.statuses,
-				},
-			}
+	t.Run("success", func(t *testing.T) {
+		exitCode := rand.Int32N(128)
 
-			k := &Kubernetes{
-				client: testClient.NewSimpleClientset(pod),
-			}
-
-			got, err := k.getEphemeralContainerExitStatus(t.Context(), pod, ephemeralContainerName)
-			if !errors.Is(err, tt.err) {
-				t.Fatalf("expecting error %v, got %v", tt.err, err)
-			}
-			if tt.exp != got {
-				t.Errorf("expecting exist status %d, got %d", tt.exp, got)
-			}
-		})
-	}
-
-	t.Run("error", func(t *testing.T) {
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "mimir-dev-013",
-				Name:      "ingester",
+				Namespace: ns,
+				Name:      podName,
 			},
-		}
-
-		k := &Kubernetes{
-			client: testClient.NewSimpleClientset(),
-		}
-
-		got, err := k.getEphemeralContainerExitStatus(t.Context(), pod, ephemeralContainerName)
-		if err == nil {
-			t.Fatal("expecting error, got nil")
-		}
-		if got != -1 {
-			t.Fatalf("expecting code -1, got %d", got)
-		}
-	})
-}
-
-func TestIsEphemeralContainerTerminated(t *testing.T) {
-	const ephemeralContainerName = "nethaxme"
-
-	tests := map[string]struct {
-		statuses []corev1.ContainerStatus
-		exp      bool
-		err      error
-	}{
-		"no ephemeral containers": {nil, false, errEphemeralContainerNotFound},
-		"ephemeral container not terminated": {
-			[]corev1.ContainerStatus{
-				{
-					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Terminated: nil},
-				},
-			},
-			false,
-			nil,
-		},
-		"ephemeral container running": {
-			[]corev1.ContainerStatus{
-				{
-					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
-				},
-			},
-			false,
-			nil,
-		},
-		"ephemeral container waiting": {
-			[]corev1.ContainerStatus{
-				{
-					Name:  ephemeralContainerName,
-					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{}},
-				},
-			},
-			false,
-			nil,
-		},
-		"ephemeral container not found": {
-			[]corev1.ContainerStatus{
-				{
-					Name: "some-other-c",
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 0,
-						},
+			Status: corev1.PodStatus{
+				EphemeralContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name:  ephemeralContainer,
+						State: corev1.ContainerState{},
 					},
 				},
 			},
-			false,
-			errEphemeralContainerNotFound,
-		},
-		"ephemeral container terminated": {
-			[]corev1.ContainerStatus{
-				{
-					Name: "some-other-c",
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 0,
-						},
-					},
-				},
-				{
-					Name: ephemeralContainerName,
-					State: corev1.ContainerState{
-						Terminated: &corev1.ContainerStateTerminated{
-							ExitCode: 2,
-						},
-					},
-				},
-			},
-			true,
-			nil,
-		},
-	}
+		}
 
-	for n, tt := range tests {
-		t.Run(n, func(t *testing.T) {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "mimir-dev-013",
-					Name:      "ingester",
-				},
-				Status: corev1.PodStatus{
-					EphemeralContainerStatuses: tt.statuses,
-				},
+		var stage int
+
+		c := testClient.NewClientset()
+
+		// This reactor is a function that gets executed every time we
+		// call the get pods API. It has different stages to mimick
+		// waiting for the ephemeral container to finish.
+		//
+		// ktesting "k8s.io/client-go/testing"
+		c.PrependReactor("get", "pods", func(_ ktesting.Action) (bool, runtime.Object, error) {
+			var state corev1.ContainerState
+
+			switch stage {
+			case 0: // initializing
+				state.Waiting = &corev1.ContainerStateWaiting{}
+			case 1: // running
+				state.Running = &corev1.ContainerStateRunning{
+					StartedAt: metav1.Now(),
+				}
+			case 2: // do work
+				state = pod.Status.EphemeralContainerStatuses[0].State
+			case 3: // terminated
+				state.Terminated = &corev1.ContainerStateTerminated{
+					ExitCode: exitCode,
+				}
 			}
 
-			k := &Kubernetes{
-				client: testClient.NewSimpleClientset(pod),
-			}
+			stage++
+			pod.Status.EphemeralContainerStatuses[0].State = state
 
-			ok, err := k.isEphemeralContainerTerminated(pod, ephemeralContainerName)(t.Context())
-			if !errors.Is(err, tt.err) {
-				t.Fatalf("unexpecting error %v, got %v", tt.err, err)
-			}
-			if tt.exp != ok {
-				t.Errorf("expecting container terminated %t, got %t", tt.exp, ok)
-			}
+			return true, pod, nil
 		})
-	}
-}
 
-func TestPollEphemeralContainerStatus(t *testing.T) {
-	t.Run("container terminated", func(t *testing.T) {
-		const ephemeralContainerName = "nethaxme"
+		k := &Kubernetes{client: c}
 
-		for _, exitCode := range []int32{0, 2} {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "mimir-dev-013",
-					Name:      "ingester",
-				},
-				Status: corev1.PodStatus{
-					EphemeralContainerStatuses: []corev1.ContainerStatus{
-						{
-							Name: ephemeralContainerName,
-							State: corev1.ContainerState{
-								Terminated: &corev1.ContainerStateTerminated{
-									ExitCode: exitCode,
-								},
-							},
-						},
-					},
-				},
-			}
-
-			k := &Kubernetes{
-				client: testClient.NewSimpleClientset(pod),
-			}
-
-			got, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
+		synctest.Run(func() {
+			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if exitCode != got {
-				t.Fatalf("expecting container status %d, got %d", exitCode, got)
+
+			if code != exitCode {
+				t.Errorf("expecting exit code %d, got %d", exitCode, code)
 			}
-		}
+		})
 	})
 
-	t.Run("container not terminated", func(t *testing.T) {
-		states := map[string]corev1.ContainerState{
-			"running": {
-				Running: &corev1.ContainerStateRunning{
-					StartedAt: metav1.Now(),
+	t.Run("ephemeral container not found", func(t *testing.T) {
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns,
+				Name:      podName,
+			},
+			Status: corev1.PodStatus{
+				EphemeralContainerStatuses: []corev1.ContainerStatus{},
+			},
+		}
+
+		k := Kubernetes{
+			client: testClient.NewClientset(pod),
+		}
+
+		synctest.Run(func() {
+			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
+			if !errors.Is(err, errEphemeralContainerNotFound) {
+				t.Fatalf("expecting error %v, got %v", errEphemeralContainerNotFound, err)
+			}
+			if code != -1 {
+				t.Errorf("expecting error code -1, got %d", code)
+			}
+		})
+	})
+
+	t.Run("timeout", func(t *testing.T) {
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns,
+				Name:      podName,
+			},
+			Status: corev1.PodStatus{
+				EphemeralContainerStatuses: []corev1.ContainerStatus{
+					corev1.ContainerStatus{
+						Name: ephemeralContainer,
+						State: corev1.ContainerState{
+							Running: &corev1.ContainerStateRunning{},
+						},
+					},
 				},
 			},
-			"waiting": {
-				Waiting: &corev1.ContainerStateWaiting{},
-			},
+		}
+		k := Kubernetes{
+			client: testClient.NewClientset(pod),
 		}
 
-		for n, state := range states {
-			t.Run("state="+n, func(t *testing.T) {
-				synctest.Run(func() {
-					const ephemeralContainerName = "nethaxme"
-
-					pod := &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "mimir-dev-013",
-							Name:      "ingester",
-						},
-						Status: corev1.PodStatus{
-							EphemeralContainerStatuses: []corev1.ContainerStatus{
-								{
-									Name:  ephemeralContainerName,
-									State: state,
-								},
-							},
-						},
-					}
-
-					k := &Kubernetes{
-						client: testClient.NewSimpleClientset(pod),
-					}
-
-					code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainerName)
-					if err == nil {
-						t.Fatal("expecting error")
-					}
-					if code != -1 {
-						t.Fatalf("expecting -1 exit code, got %d", code)
-					}
-				})
-			})
-		}
+		synctest.Run(func() {
+			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatalf("expecting error %v, got %v", context.DeadlineExceeded, err)
+			}
+			if code != -1 {
+				t.Errorf("expecting error code -1, got %d", code)
+			}
+		})
 	})
 }
