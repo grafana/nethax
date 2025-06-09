@@ -18,9 +18,7 @@ import (
 
 // ExecuteTest returns the execute-test command
 func ExecuteTest() *cobra.Command {
-	var testFile string
-	var defaultProbeImage string
-	var kontext string
+	var testFile, defaultProbeImage, kontext string
 
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
