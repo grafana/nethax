@@ -20,6 +20,7 @@ import (
 func ExecuteTest() *cobra.Command {
 	var testFile string
 	var defaultProbeImage string
+	var kontext string
 
 	cmd := &cobra.Command{
 		Use:   "execute-test -f example/OtelDemoTestPlan.yaml",
@@ -44,7 +45,7 @@ func ExecuteTest() *cobra.Command {
 				os.Exit(exitCodeConfigError)
 			}
 
-			k, err := kubernetes.New("")
+			k, err := kubernetes.New(kontext)
 			if err != nil {
 				cmd.Printf("Error creating Kubernetes client: %v\n", err)
 				os.Exit(exitCodeConfigError)
@@ -59,6 +60,9 @@ func ExecuteTest() *cobra.Command {
 
 	cmd.Flags().StringVarP(&testFile, "file", "f", "", "Path to the test configuration YAML file")
 	cmd.MarkFlagRequired("file") //nolint:errcheck
+
+	cmd.Flags().StringVarP(&kontext, "context", "c", "", "Kubernetes context to connect. Leave empty for in-cluster context.")
+
 	cmd.Flags().StringVar(&defaultProbeImage,
 		"default-probe-image",
 		kubernetes.DefaultProbeImage,
