@@ -65,7 +65,7 @@ func ParseTestPlan(reader io.Reader) (*TestPlan, error) {
 	var plan struct {
 		TestPlan TestPlan `yaml:"testPlan"`
 	}
-	if err := yaml.NewDecoder(reader).Decode(&plan); err != nil {
+	if err := yaml.NewDecoder(reader, yaml.Strict()).Decode(&plan); err != nil {
 		return nil, err
 	}
 
