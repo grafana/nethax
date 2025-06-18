@@ -14,10 +14,11 @@ ARG PROBE_IMAGE
 ARG TARGETOS
 ARG TARGETARCH
 # Build the probe binary
-RUN env CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=${PROBE_IMAGE}'" -a -o /runner ./cmd/runner
+RUN env CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=${PROBE_IMAGE}'" -a -o /nethax ./cmd/nethax
+RUN env CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=${PROBE_IMAGE}'" -a -o /nethax ./cmd/nethax
 
 FROM scratch
 
-COPY --from=build /runner /runner
+COPY --from=build /nethax /nethax
 
-ENTRYPOINT ["/runner"]
+ENTRYPOINT ["/nethax"]

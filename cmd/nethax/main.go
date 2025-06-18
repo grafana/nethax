@@ -15,7 +15,7 @@ const (
 
 func main() {
 	root := &cobra.Command{
-		Use:   "runner --help",
+		Use:   "nethax-runner --help",
 		Short: "nethax test runner",
 	}
 

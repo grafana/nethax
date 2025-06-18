@@ -24,7 +24,7 @@ RUNNER_IMAGE_PREFIX := "grafana/nethax-runner"
 PROBE_IMAGE_PREFIX := "grafana/nethax-probe"
 
 CUR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-DIR_RUNNER := "$(CUR_DIR)/cmd/runner"
+DIR_RUNNER := "$(CUR_DIR)/cmd/nethax"
 DIR_PROBE := "$(CUR_DIR)/cmd/nethax-probe"
 
 # Enable experimental testing/synctest package
