@@ -60,13 +60,21 @@ docker-push:
 	@docker push $(PROBE_IMAGE_PREFIX):latest
 
 docker-runner:
-	@docker build -f Dockerfile-runner --build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) -t $(RUNNER_IMAGE_PREFIX):latest .
+	@docker buildx build -f Dockerfile-runner \
+		--build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) \
+		-t $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) -t $(RUNNER_IMAGE_PREFIX):latest \
+		--platform="linux/amd64,linux/arm64,linux/ppc64le,linux/s390x" \
+		.
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) $(RUNNER_IMAGE_PREFIX):$(RUNNER_VERSION) || true
 endif
 
 docker-probe:
-	@docker build -f Dockerfile-probe --build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):latest .
+	@docker buildx build -f Dockerfile-probe \
+		--build-arg PROBE_IMAGE=$(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) \
+		-t $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) -t $(PROBE_IMAGE_PREFIX):latest \
+		--platform="linux/amd64,linux/arm64,linux/ppc64le,linux/s390x" \
+		.
 ifndef CI
 	@kind load docker-image --name $(KIND_CLUSTER_NAME) $(PROBE_IMAGE_PREFIX):$(PROBE_VERSION) || true
 endif

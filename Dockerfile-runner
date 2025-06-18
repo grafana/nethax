@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS build
 
 WORKDIR /
 
@@ -10,7 +10,11 @@ RUN ["go", "mod", "download"]
 
 # Build the probe binary
 ARG PROBE_IMAGE
-RUN env CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=${PROBE_IMAGE}'" -a -o /runner ./cmd/runner
+#  Passed in from buildx
+ARG TARGETOS
+ARG TARGETARCH
+# Build the probe binary
+RUN env CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s -extldflags '-static' -X 'github.com/grafana/nethax/pkg/kubernetes.DefaultProbeImage=${PROBE_IMAGE}'" -a -o /runner ./cmd/runner
 
 FROM scratch
 
