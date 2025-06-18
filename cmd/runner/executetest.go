@@ -125,7 +125,7 @@ func executeTest(ctx context.Context, k *kubernetes.Kubernetes, plan *TestPlan) 
 				}
 
 				// Prepare the test command
-				command := []string{"/probe"}
+				command := []string{"/nethax-probe"}
 				arguments := []string{
 					pf.Flagify(pf.ArgURL), test.Endpoint,
 					pf.Flagify(pf.ArgTimeout), test.Timeout.String(),
