@@ -19,5 +19,15 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Dockerhub Login
         uses: grafana/shared-workflows/actions/dockerhub-login@cb40def95f3c449ae8c7f23fa302c22bf9355fb5 # dockerhub-login latest
+      - name: Enable containerd snapshotting (for multi-platform building)
+        uses: docker/setup-docker-action@b60f85385d03ac8acfca6d9996982511d8620a19 # v4.3.0
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
       - name: Build and push
         run: make docker-build docker-push
