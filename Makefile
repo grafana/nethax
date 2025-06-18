@@ -8,8 +8,8 @@ K := $(foreach exec,$(EXECUTABLES),\
 endif
 
 # Set these to release new versions of the container
-RUNNER_SEMVER := "0.0.1"
-PROBE_SEMVER := "0.0.1"
+RUNNER_SEMVER := "0.0.2"
+PROBE_SEMVER := "0.0.2"
 
 ifdef CI
 	RUNNER_VERSION := $(RUNNER_SEMVER)
