@@ -39,7 +39,7 @@ See an example test plan at `example/OtelDemoTestPlan.yaml`.
 
 Here's an example run:
 ```ShellSession
-$ ./bin/runner execute-test -f example/OtelDemoTestPlan.yaml
+$ nethax execute-test -f example/OtelDemoTestPlan.yaml
 
 Executing test plan: Otel Demo Test Plan
 Description: Test plan for the opentelemetry demo application: https://github.com/open-telemetry/opentelemetry-demo
