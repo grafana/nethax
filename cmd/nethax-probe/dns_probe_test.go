@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -56,7 +57,11 @@ func TestDNSProbe(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
-		if err := p.Run(ctx); !errors.Is(err, context.Canceled) {
+		// This should be !errors.Is(err, context.Canceled) but there
+		// seems to be a bug in Go stdlib, check
+		// https://github.com/golang/go/issues/71939 for additional
+		// information.
+		if err := p.Run(ctx); !strings.Contains(err.Error(), "operation was canceled") {
 			t.Fatalf("expecting error %v, got %v", context.Canceled, err)
 		}
 	})
