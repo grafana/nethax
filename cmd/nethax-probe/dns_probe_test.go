@@ -47,7 +47,7 @@ func TestDNSProbe(t *testing.T) {
 		p := NewDNSProbe("example.com", true)
 
 		if err := p.Run(t.Context()); err != nil {
-			t.Fatalf("unexoected error %v", err)
+			t.Fatalf("unexpected error %v", err)
 		}
 	})
 
