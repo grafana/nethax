@@ -80,6 +80,8 @@ func (tt TestType) String() string {
 		return "http"
 	case TestTypeTCP:
 		return "tcp"
+	case TestTypeDNS:
+		return "dns"
 	default:
 		panic("unrecognized testype")
 	}
@@ -88,6 +90,7 @@ func (tt TestType) String() string {
 const (
 	TestTypeHTTP TestType = iota
 	TestTypeTCP
+	TestTypeDNS
 )
 
 var errInvalidTestType = errors.New("invalid test type")
@@ -98,6 +101,8 @@ func yamlUnmarshalTestType(tt *TestType, b []byte) error {
 		*tt = TestTypeHTTP
 	case "tcp":
 		*tt = TestTypeTCP
+	case "dns":
+		*tt = TestTypeDNS
 	default:
 		return fmt.Errorf("%w: %q", errInvalidTestType, b)
 	}
