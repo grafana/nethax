@@ -51,6 +51,14 @@ func TestDNSProbe(t *testing.T) {
 		}
 	})
 
+	t.Run("probe succeeds when it should fail", func(t *testing.T) {
+		p := NewDNSProbe("grafana.com", true)
+
+		if err := p.Run(t.Context()); err == nil {
+			t.Fatal("expecting error %w", errConnectionSucceeded)
+		}
+	})
+
 	t.Run("context aware", func(t *testing.T) {
 		p := NewDNSProbe("grafana.com", false)
 
