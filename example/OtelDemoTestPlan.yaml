@@ -31,3 +31,7 @@ testPlan:
       type: tcp
       expectFail: true # TCP connection failure is expected; useful to test network policies
       timeout: 3s
+    - name: "DNS resolves"
+      endpoint: "grafana.com"
+      type: dns
+      timeout: 50ms
