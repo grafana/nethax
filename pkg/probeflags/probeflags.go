@@ -18,4 +18,5 @@ func Flagify(flag string) string {
 const (
 	TestTypeTCP  = "tcp"
 	TestTypeHTTP = "http"
+	TestTypeDNS  = "dns"
 )
