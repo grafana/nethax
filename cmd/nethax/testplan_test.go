@@ -99,10 +99,12 @@ func TestTestType_UnmarshalYAML(t *testing.T) {
 		"http":  {TestTypeHTTP, nil},
 		"https": {TestTypeHTTP, nil},
 		"tcp":   {TestTypeTCP, nil},
+		"dns":   {TestTypeDNS, nil},
 		// ignore case
 		"HTTP":  {TestTypeHTTP, nil},
 		"HTTPS": {TestTypeHTTP, nil},
 		"TCP":   {TestTypeTCP, nil},
+		"DNS":   {TestTypeDNS, nil},
 		// invalid values // TODO(inkel) this could probably be a fuzz test
 		"foo": {TestTypeHTTP, errInvalidTestType},
 	}

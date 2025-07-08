@@ -29,7 +29,7 @@ func main() {
 	flag.DurationVar(&timeout, pf.ArgTimeout, 5*time.Second, "Timeout value (e.g. 5s, 1m)")
 	flag.IntVar(&expectedStatus, pf.ArgExpectedStatus, 200, "Expected HTTP status code (0 for connection failure)")
 	flag.StringVar(&testType, pf.ArgType, pf.TestTypeHTTP, "Type of test (http or tcp)")
-	flag.BoolVar(&expectFail, pf.ArgExpectFail, false, "Whether the test is expected to fail (TCP tests only)")
+	flag.BoolVar(&expectFail, pf.ArgExpectFail, false, "Whether the test is expected to fail (TCP and DNS tests only)")
 	flag.Parse()
 
 	if url == "" {
@@ -44,6 +44,8 @@ func main() {
 		probe = NewTCPProbe(url, expectFail)
 	case pf.TestTypeHTTP:
 		probe = NewHTTPProbe(url, expectedStatus)
+	case pf.TestTypeDNS:
+		probe = NewDNSProbe(url, expectFail)
 	default:
 		fmt.Println("Error: Invalid test type: ", testType)
 		os.Exit(exitCodeConfigError)
