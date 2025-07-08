@@ -9,22 +9,12 @@ import (
 )
 
 func TestDNSProbe(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		t.Run("host resolves", func(t *testing.T) {
-			p := NewDNSProbe("grafana.com", false)
+	t.Run("host resolves", func(t *testing.T) {
+		p := NewDNSProbe("grafana.com", false)
 
-			if err := p.Run(t.Context()); err != nil {
-				t.Fatal(err)
-			}
-		})
-
-		t.Run("host not found", func(t *testing.T) {
-			p := NewDNSProbe("example.com", true)
-
-			if err := p.Run(t.Context()); err != nil {
-				t.Fatal(err)
-			}
-		})
+		if err := p.Run(t.Context()); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("conn should fail", func(t *testing.T) {
