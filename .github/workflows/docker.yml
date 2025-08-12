@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Dockerhub Login
-        uses: grafana/shared-workflows/actions/dockerhub-login@297fe73b6a757ed3d915f95343bbbb9d067d792f # dockerhub-login latest
+        uses: grafana/shared-workflows/actions/dockerhub-login@7c748d77ca1ccc01af4281ea72c7ec9d2b3d9129 # dockerhub-login latest
       - name: Enable containerd snapshotting (for multi-platform building)
         uses: docker/setup-docker-action@b60f85385d03ac8acfca6d9996982511d8620a19 # v4.3.0
         with:
