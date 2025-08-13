@@ -21,7 +21,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@8e57b58e57be52ac95949151e2777ffda8501267
       with:
-        go-version: 1.24
+        go-version: 1.25
 
     - name: Checks
       run: make checks
