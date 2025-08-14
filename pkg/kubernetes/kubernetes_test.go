@@ -253,7 +253,7 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 
 		k := &Kubernetes{client: c}
 
-		synctest.Run(func() {
+		synctest.Test(t, func(t *testing.T) {
 			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -280,7 +280,7 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 			client: testClient.NewClientset(pod),
 		}
 
-		synctest.Run(func() {
+		synctest.Test(t, func(t *testing.T) {
 			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
 			if !errors.Is(err, errEphemeralContainerNotFound) {
 				t.Fatalf("expecting error %v, got %v", errEphemeralContainerNotFound, err)
@@ -312,7 +312,7 @@ func TestPollEphemeralContainerStatus(t *testing.T) {
 			client: testClient.NewClientset(pod),
 		}
 
-		synctest.Run(func() {
+		synctest.Test(t, func(t *testing.T) {
 			code, err := k.PollEphemeralContainerStatus(t.Context(), pod, ephemeralContainer)
 			if !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("expecting error %v, got %v", context.DeadlineExceeded, err)
