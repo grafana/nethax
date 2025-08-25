@@ -6,5 +6,16 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
+  "packageRules": [
+    {
+      "description": "Schedule grafana/shared-workflows updates on Sunday nights (9 PM - 12 AM)",
+      "matchPackageNames": [
+        "@grafana/shared-workflows/*"
+      ],
+      "schedule": [
+        "* 21-23 * * 0"
+      ]
+    }
+  ],
   "automerge": true
 }
