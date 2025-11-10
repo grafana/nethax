@@ -20,7 +20,7 @@ jobs:
       - name: Dockerhub Login
         uses: grafana/shared-workflows/actions/dockerhub-login@2d5a0678eb32b0fd6655b4f7a3a7ec72eaf530ca # dockerhub-login latest
       - name: Enable containerd snapshotting (for multi-platform building)
-        uses: docker/setup-docker-action@3fb92d6d9c634363128c8cce4bc3b2826526370a # v4.4.0
+        uses: docker/setup-docker-action@efe9e3891a4f7307e689f2100b33a155b900a608 # v4.5.0
         with:
           daemon-config: |
             {
