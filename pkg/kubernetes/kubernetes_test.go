@@ -17,13 +17,13 @@ import (
 
 func setup() *Kubernetes {
 	return &Kubernetes{
-		client: testClient.NewSimpleClientset(),
+		client: testClient.NewClientset(),
 	}
 }
 
 func TestGetPods(t *testing.T) {
 	k := &Kubernetes{
-		client: testClient.NewSimpleClientset(
+		client: testClient.NewClientset(
 			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "nethax",
